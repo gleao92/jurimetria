@@ -7,7 +7,7 @@ requests>=2.31
 zeep>=4.2                # MNI (webservice do Judiciário)
 
 # Para Postgres na nuvem (db.py detecta via DATABASE_URL):
-# psycopg[binary]>=3.1
+psycopg[binary]>=3.1    # Postgres/Supabase (só usado se DATABASE_URL estiver definida)
 # Para certificado A1 (certificado.py):
 # requests-pkcs12>=1.24
 # cryptography>=42
