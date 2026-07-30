@@ -25,6 +25,42 @@ from modelos import Publicacao
 BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao"
 TIMEOUT = 45
 
+# Cabeçalhos de navegador. A API do DJEN é pública, mas serviços do Judiciário
+# costumam filtrar requisição sem identificação — e o padrão do requests
+# ("python-requests/2.x") é o primeiro a ser barrado.
+CABECALHOS = {
+    "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/122.0.0.0 Safari/537.36"),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+    "Referer": "https://comunica.pje.jus.br/",
+    "Origin": "https://comunica.pje.jus.br",
+}
+
+
+class DJENBloqueado(Exception):
+    """A API recusou a consulta (403). Quase sempre é origem do pedido."""
+
+
+def _proxies():
+    """Proxy opcional para a consulta sair por um IP brasileiro.
+
+    O DJEN recusa pedido vindo de servidor no exterior. Em vez de mover o
+    sistema inteiro, dá para rotear SÓ esta requisição por uma máquina no
+    Brasil. Configure a variável de ambiente:
+
+        DJEN_PROXY=http://usuario:senha@host:porta
+        DJEN_PROXY=socks5://usuario:senha@host:1080
+
+    Para socks5 é preciso instalar:  pip install "requests[socks]"
+
+    Sem a variável, a consulta sai direto (comportamento normal).
+    """
+    import os
+    p = os.environ.get("DJEN_PROXY", "").strip()
+    return {"http": p, "https": p} if p else None
+
 
 def _pega(item: dict, *nomes, padrao=None):
     """Primeiro nome de campo que existir e não estiver vazio."""
@@ -59,7 +95,28 @@ def _buscar_bruto(oab: str, uf: str, desde: date, ate: date = None,
             "dataDisponibilizacaoFim": ate.isoformat(),
             "itensPorPagina": 100, "pagina": pagina,
         }
-        r = requests.get(BASE, params=params, timeout=TIMEOUT)
+        r = requests.get(BASE, params=params, timeout=TIMEOUT,
+                         headers=CABECALHOS, proxies=_proxies())
+        if r.status_code == 403:
+            # 403 quase nunca é a OAB errada — é a ORIGEM do pedido sendo
+            # recusada. O DJEN é público, mas serviços do Judiciário brasileiro
+            # costumam barrar IP de datacenter no exterior. A mesma consulta
+            # funciona a partir de uma conexão no Brasil.
+            raise DJENBloqueado(
+                "O DJEN recusou a consulta (403). A OAB e o período estão "
+                "corretos — o que ele recusou foi a ORIGEM do pedido.\n\n"
+                "Isto acontece quando o sistema roda num servidor fora do "
+                "Brasil (o seu está em Oregon, EUA). O DJEN aceita a mesma "
+                "consulta partindo de uma conexão brasileira.\n\n"
+                "Saídas possíveis:\n"
+                "• hospedar o sistema num servidor no Brasil;\n"
+                "• rodar a captura no computador do escritório e deixar só o "
+                "painel na nuvem (veja capturar.py);\n"
+                "• rotear só esta consulta por um proxy brasileiro, definindo "
+                "a variável DJEN_PROXY."
+                + (" (Há um proxy configurado e ele também foi recusado — "
+                   "provavelmente é IP de datacenter, que costuma estar na "
+                   "mesma lista de bloqueio.)" if _proxies() else ""))
         r.raise_for_status()
         dados = r.json()
         lote = (dados if isinstance(dados, list)
@@ -97,6 +154,11 @@ def normalizar(item: dict) -> Publicacao:
         tipo=_pega(item, "tipoComunicacao", "tipoDocumento", "nomeClasse",
                    padrao=""),
         orgao=_pega(item, "nomeOrgao", "orgao", "siglaOrgao", padrao=""),
+        # O DJEN entrega a data em que a comunicação SE CONSIDERA publicada (o
+        # primeiro dia útil após a disponibilização, art. 224 §2º do CPC). O
+        # cálculo não pode avançar esse dia de novo. Marca na origem, em vez de
+        # depender de casar a sigla do tribunal com uma lista.
+        tipo_data="publicacao",
     )
 
 
