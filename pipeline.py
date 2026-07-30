@@ -21,7 +21,15 @@ FONTES_DATA_PUBLICACAO = {"PJe", "DJEN", "comunica", "eproc", "eSAJ", "PROJUDI"}
 
 def _tipo_data(pub) -> str:
     """"publicacao" se a fonte já entrega a data de publicação; senão
-    "disponibilizacao" (comportamento padrão do motor)."""
+    "disponibilizacao" (comportamento padrão do motor).
+
+    Primeiro respeita o que a própria captura marcou (campo tipo_data) — o
+    DJEN, por exemplo, sempre entrega data de publicação. Só se a publicação
+    não disser nada é que se tenta deduzir pelo sistema/tribunal.
+    """
+    marcado = str(pub.get("tipo_data") or "").strip()
+    if marcado in ("publicacao", "disponibilizacao"):
+        return marcado
     sistema = str(pub.get("sistema") or "").strip()
     for f in FONTES_DATA_PUBLICACAO:
         if f.lower() in sistema.lower():

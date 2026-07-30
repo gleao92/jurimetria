@@ -73,6 +73,7 @@ class Publicacao(_ComoDicionario):
     teor: str = ""
     tipo: str = ""            # tipoComunicacao do DJEN, quando vem
     orgao: str = ""           # nome da vara — usado para deduzir a área
+    tipo_data: str = ""       # "publicacao" quando a fonte já entrega a publicação
     id_aviso: str = ""        # identificador do MNI, quando aplicável
     fontes: list = field(default_factory=list)
 
