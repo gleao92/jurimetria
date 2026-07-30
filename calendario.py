@@ -135,7 +135,8 @@ def lista_dia(dia: date, prazos: list[dict], hoje: date) -> str:
                 ('' if eh_dia_util(dia) else ' · sem expediente'))
              + '</div>')
     if not itens:
-        return cabec + ('<div class="vazio">Nenhum prazo neste dia.</div>')
+        return cabec + ('<div class="vazio">'
+                        '<div class="vazio-t">Nenhum prazo neste dia.</div></div>')
     corpo = ""
     for it in itens:
         cor = ("#A31D1D" if it["tipo"] == "fatal" and not it["classe"]
@@ -215,7 +216,8 @@ def render_dia(st, dia: date, prazos: list, hoje: date,
                    ('' if eh_dia_util(dia) else ' · sem expediente'))
                 + '</div>', unsafe_allow_html=True)
     if not itens:
-        st.markdown('<div class="vazio">Nenhum prazo neste dia.</div>',
+        st.markdown('<div class="vazio"><div class="vazio-t">'
+                    'Nenhum prazo neste dia.</div></div>',
                     unsafe_allow_html=True)
         return
     for j, it in enumerate(itens):

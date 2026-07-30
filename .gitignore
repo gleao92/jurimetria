@@ -1,0 +1,21 @@
+# NUNCA versione estes arquivos — contêm dados sob sigilo profissional
+controladoria.db
+*.db
+.env
+.streamlit/secrets.toml
+*.pfx
+*.p12
+__pycache__/
+*.pyc
+
+# Configuração local (pode conter senha do MNI)
+configuracao.json
+
+# Extras de segurança para o deploy
+*.sqlite
+*.sqlite3
+backup*.db
+.venv/
+venv/
+*.log
+.DS_Store

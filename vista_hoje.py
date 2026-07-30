@@ -30,28 +30,41 @@ def render(ctx):
     confirmados = ctx.get("confirmados", [])
 
     if revisar:
-        st.markdown(f'<div class="secao">Aguardando sua confirmação · {len(revisar)}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="secao">Fila de revisão · {len(revisar)}'
+            f'<span style="text-transform:none;letter-spacing:0;font-weight:400;'
+            f'margin-left:.6rem;opacity:.75">'
+            f'classificação sugerida — confirme antes de confiar na data</span>'
+            f'</div>', unsafe_allow_html=True)
         if not PODE_CONFIRMAR:
             st.caption("A confirmação é do advogado.")
-        for p in revisar:
-            num, un, cor, selo, _ = urgencia(p)
-            c1, c2 = st.columns([6, 1.4])
-            with c1:
-                st.markdown(estilo.linha(
-                    cor, num, un, p["ato"], p.get("cliente") or "cliente não identificado",
-                    f'{p["processo"]} · {p.get("sistema") or "—"} · '
-                    f'fatal {fmt(p["data_fatal"])}', selo),
-                    unsafe_allow_html=True)
-            with c2:
-                st.write("")
-                if st.button("Revisar", key=f"r{p['id']}", width="stretch",
-                             disabled=not PODE_CONFIRMAR):
-                    st.session_state["abrir"] = p["id"]
 
-            if st.session_state.get("abrir") == p["id"]:
-                painel.revisar(st, db, p, USER["nome"], prefixo="hoje",
-                               pode_confirmar=PODE_CONFIRMAR)
+        # Grade de duas colunas: cabe o dobro de prazos sem rolar a tela.
+        # O painel de revisão, quando aberto, ocupa a largura inteira embaixo —
+        # ele tem campos demais para caber em meia tela.
+        aberto = st.session_state.get("abrir")
+        for i in range(0, len(revisar), 2):
+            colunas = st.columns(2, gap="medium")
+            for col, p in zip(colunas, revisar[i:i + 2]):
+                num, un, _cor, _selo, dias = urgencia(p)
+                with col:
+                    st.markdown(estilo.cartao(
+                        p, num, un, estilo.tom_por_dias(dias),
+                        processo=p["processo"],
+                        orgao=p.get("tribunal") or p.get("sistema") or "",
+                        fatal=fmt_longo(p["data_fatal"]),
+                        interno=fmt(p.get("prazo_interno"))),
+                        unsafe_allow_html=True)
+                    if st.button("Revisar", key=f"r{p['id']}", width="stretch",
+                                 disabled=not PODE_CONFIRMAR):
+                        st.session_state["abrir"] = p["id"]
+                        st.rerun()
+
+            # painel do prazo aberto nesta faixa, em largura cheia
+            for p in revisar[i:i + 2]:
+                if aberto == p["id"]:
+                    painel.revisar(st, db, p, USER["nome"], prefixo="hoje",
+                                   pode_confirmar=PODE_CONFIRMAR)
             st.markdown('<hr class="divisa">', unsafe_allow_html=True)
 
     urgentes = sorted([p for p in confirmados if urgencia(p)[4] is not None
@@ -59,19 +72,21 @@ def render(ctx):
     if urgentes:
         st.markdown(f'<div class="secao">Confirmados, vencendo · {len(urgentes)}</div>',
                     unsafe_allow_html=True)
-        for p in urgentes:
-            num, un, cor, selo, _ = urgencia(p)
-            c1, c2 = st.columns([6, 1.4])
-            with c1:
-                st.markdown(estilo.linha(
-                    cor, num, un, p["ato"], p.get("cliente") or "—",
-                    f'{p["processo"]} · fatal {fmt(p["data_fatal"])} · '
-                    f'interno {fmt(p["prazo_interno"])}', selo),
-                    unsafe_allow_html=True)
-            with c2:
-                st.write("")
-                if st.button("Cumprido", key=f"k{p['id']}", width="stretch"):
-                    db.marcar_cumprido(p["id"], USER["nome"]); st.rerun()
+        for i in range(0, len(urgentes), 2):
+            colunas = st.columns(2, gap="medium")
+            for col, p in zip(colunas, urgentes[i:i + 2]):
+                num, un, _cor, _selo, dias = urgencia(p)
+                with col:
+                    st.markdown(estilo.cartao(
+                        p, num, un, estilo.tom_por_dias(dias),
+                        processo=p["processo"],
+                        orgao=p.get("tribunal") or p.get("sistema") or "",
+                        fatal=fmt_longo(p["data_fatal"]),
+                        interno=fmt(p.get("prazo_interno"))),
+                        unsafe_allow_html=True)
+                    if st.button("Marcar cumprido", key=f"k{p['id']}",
+                                 width="stretch"):
+                        db.marcar_cumprido(p["id"], USER["nome"]); st.rerun()
             st.markdown('<hr class="divisa">', unsafe_allow_html=True)
 
     # Compromissos da semana: audiência e reunião não vêm de publicação, mas
@@ -109,9 +124,10 @@ def render(ctx):
             st.markdown('<hr class="divisa">', unsafe_allow_html=True)
 
     if not revisar and not urgentes and not prox:
-        st.markdown('<div class="vazio">Nada exige ação hoje.'
-                    '<small>Prazos revisados, com folga, e nenhum compromisso '
-                    'nos próximos dias.</small></div>', unsafe_allow_html=True)
+        st.markdown(estilo.vazio(
+            "Nada exige ação hoje.",
+            "Prazos revisados, com folga, e nenhum compromisso nos próximos dias."),
+            unsafe_allow_html=True)
 
 
 # ══════════════════ Prazos ══════════════════

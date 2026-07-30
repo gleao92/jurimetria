@@ -113,8 +113,8 @@ def render(ctx):
                 st.info("Nada mudou.")
             st.rerun()
     else:
-        st.markdown('<div class="vazio">Carteira vazia.'
-                    '<small>Importe a lista de processos abaixo.</small></div>',
+        st.markdown(estilo.vazio("Carteira vazia.",
+                                 "Importe a lista de processos abaixo."),
                     unsafe_allow_html=True)
 
     if PODE_CONFIRMAR:

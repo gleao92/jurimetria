@@ -31,8 +31,8 @@ def render(ctx):
 
     todos = db.listar_prazos()
     if not todos:
-        st.markdown('<div class="vazio">Nenhum prazo registrado.'
-                    '<small>Busque publicações na barra lateral.</small></div>',
+        st.markdown(estilo.vazio("Nenhum prazo registrado.",
+                                 "Busque publicações na barra lateral."),
                     unsafe_allow_html=True)
     else:
         f1, f2 = st.columns([1, 2])

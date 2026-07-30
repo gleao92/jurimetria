@@ -17,6 +17,14 @@ auth.criar_usuario("teste", "Dr. Teste", "senhaforte1", "advogado")
 auth.criar_usuario("apoio1", "Secretária", "senhaforte1", "apoio")
 pipeline.carregar_exemplo()
 
+def _ss(at, chave, padrao=None):
+    """session_state do AppTest não tem .get() — este helper faz o papel."""
+    try:
+        return at.session_state[chave]
+    except Exception:
+        return padrao
+
+
 falhas = 0
 
 def cenario(nome, session=None):
@@ -56,12 +64,16 @@ at3 = cenario("logado como APOIO",
 
 # Permissão: apoio NÃO pode ver a aba de Configuração (credenciais do advogado)
 if not at3.exception:
-    n_apoio = len(at3.tabs)
-    if n_apoio != 4:
+    rot_apoio = [b.label for b in at3.button]
+    trabalho = [r for r in ("Hoje", "Agenda", "Prazos", "Processos") if r in rot_apoio]
+    if len(trabalho) != 4:
         falhas += 1
-        print(f"  FALHA  apoio deveria ver 4 abas, viu {n_apoio}")
+        print(f"  FALHA  apoio deveria ver as 4 telas, viu {trabalho}")
+    elif "Ajustes" in rot_apoio:
+        falhas += 1
+        print("  FALHA  apoio NÃO pode ver o menu Ajustes")
     else:
-        print("  PASS   apoio vê as 4 telas de trabalho")
+        print("  PASS   apoio vê as 4 telas e não vê Ajustes")
 
     # Apoio NÃO pode alcançar Ajustes nem forçando o estado
     at3b = AppTest.from_file("app.py", default_timeout=60)
@@ -72,25 +84,30 @@ if not at3.exception:
     if at3b.exception:
         falhas += 1
         print("  FALHA  apoio forçando tela de ajustes derrubou o app")
-    elif len(at3b.tabs) == 4:
+    elif _ss(at3b, "tela") == "hoje":
         print("  PASS   apoio não alcança Ajustes nem forçando o estado")
     else:
         falhas += 1
-        print("  FALHA  apoio conseguiu abrir Ajustes")
+        _t = _ss(at3b, "tela")
+        print(f"  FALHA  apoio abriu Ajustes (tela={_t})")
 
 # Conteúdo mínimo esperado quando logado
 at2 = AppTest.from_file("app.py", default_timeout=60)
 at2.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste", "papel": "advogado"}
 at2.run()
 if not at2.exception:
-    n_abas = len(at2.tabs)
     marcado = "".join(str(m.value) for m in at2.markdown)
-    print(f"  info   {n_abas} abas renderizadas")
-    # Ajustes saiu das abas: agora são 4 telas de trabalho para todo mundo,
-    # e a configuração é destino próprio pelo menu do usuário.
-    if n_abas != 4:
+    rot_adv = [b.label for b in at2.button]
+    menu = [r for r in ("Hoje", "Agenda", "Prazos", "Processos", "Ajustes")
+            if r in rot_adv]
+    if len(menu) != 5:
         falhas += 1
-        print(f"  FALHA  esperava 4 abas de trabalho, viu {n_abas}")
+        print(f"  FALHA  advogado deveria ver 5 itens de menu, viu {menu}")
+    else:
+        print("  PASS   menu lateral com as 5 telas")
+    if "marca-barra" not in marcado:
+        falhas += 1
+        print("  FALHA  barra lateral não renderizou a marca")
     if "situacao" not in marcado:
         falhas += 1
         print("  FALHA  linha de situação não renderizou")
@@ -103,6 +120,7 @@ _ps = _db.listar_prazos()
 if _ps:
     at5 = AppTest.from_file("app.py", default_timeout=60)
     at5.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste", "papel": "advogado"}
+    at5.session_state["tela"] = "agenda"
     at5.session_state["sel_prazo"] = _ps[0]["id"]
     at5.run()
     if at5.exception:
@@ -123,6 +141,7 @@ if _ps:
 
     at6 = AppTest.from_file("app.py", default_timeout=60)
     at6.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste", "papel": "advogado"}
+    at6.session_state["tela"] = "agenda"
     at6.session_state["sel_prazo"] = None
     at6.run()
     if at6.exception:
@@ -133,6 +152,7 @@ if _ps:
 
     at7 = AppTest.from_file("app.py", default_timeout=60)
     at7.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste", "papel": "advogado"}
+    at7.session_state["tela"] = "agenda"
     at7.session_state["sel_prazo"] = "id-que-nao-existe"
     at7.run()
     if at7.exception:
@@ -144,12 +164,13 @@ if _ps:
     # O clique NÃO pode derrubar o login (bug dos links HTML)
     at8 = AppTest.from_file("app.py", default_timeout=60)
     at8.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste", "papel": "advogado"}
+    at8.session_state["tela"] = "agenda"
     at8.session_state["sel_prazo"] = _ps[0]["id"]
     at8.run()
     if at8.exception:
         falhas += 1
         print("  FALHA  seleção derrubou a tela")
-    elif "user" not in at8.session_state or not at8.session_state["user"]:
+    elif not _ss(at8, "user"):
         falhas += 1
         print("  FALHA  LOGIN PERDIDO ao selecionar um prazo")
     else:
@@ -192,6 +213,7 @@ if _ps:
         at10 = AppTest.from_file("app.py", default_timeout=60)
         at10.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste",
                                       "papel": "advogado"}
+        at10.session_state["tela"] = "agenda"
         at10.session_state["sel_prazo"] = _pend[0]["id"]
         at10.run()
         if at10.exception:
@@ -218,6 +240,7 @@ if _ps:
     at11 = AppTest.from_file("app.py", default_timeout=60)
     at11.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste",
                                   "papel": "advogado"}
+    at11.session_state["tela"] = "processos"
     at11.run()
     if at11.exception:
         falhas += 1
@@ -269,11 +292,14 @@ if _ps:
             print(f"         {str(e.message)[:170]}")
     else:
         rot = " ".join(b.label for b in at12.button)
-        if "← Voltar ao painel" in rot and len(at12.tabs) == 0:
-            print("  PASS   Ajustes é tela própria, com volta")
+        marc12 = "".join(str(m.value) for m in at12.markdown)
+        # procura a DIV do painel, não a regra CSS de mesmo nome
+        tem_painel = 'class="situacao"' in marc12
+        if "Hoje" in rot and not tem_painel:
+            print("  PASS   Ajustes é tela própria (menu volta; sem painel de situação)")
         else:
             falhas += 1
-            print(f"  FALHA  Ajustes sem volta ou ainda em aba ({len(at12.tabs)} abas)")
+            print("  FALHA  Ajustes sem retorno pelo menu ou com painel indevido")
 
     # Compromisso aparece no calendário e abre para edição
     import compromissos as _comp
@@ -283,6 +309,7 @@ if _ps:
     at13 = AppTest.from_file("app.py", default_timeout=60)
     at13.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste",
                                   "papel": "advogado"}
+    at13.session_state["tela"] = "agenda"
     at13.session_state["sel_compromisso"] = _cid
     at13.run()
     if at13.exception:
@@ -301,6 +328,7 @@ if _ps:
     at14 = AppTest.from_file("app.py", default_timeout=60)
     at14.session_state["user"] = {"usuario": "teste", "nome": "Dr. Teste",
                                   "papel": "advogado"}
+    at14.session_state["tela"] = "agenda"
     at14.session_state["novo_comp"] = True
     at14.run()
     if at14.exception:
