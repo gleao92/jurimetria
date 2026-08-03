@@ -18,6 +18,27 @@ from classificacao import classificar
 # Diário 03/07 (sexta), publicação/ciência 06/07 (segunda), fatal correto 27/07.
 FONTES_DATA_PUBLICACAO = {"PJe", "DJEN", "comunica", "eproc", "eSAJ", "PROJUDI"}
 
+# Rótulo para publicação cujo TEOR não veio no diário.
+# Não é falha de leitura: o DJEN entrega um texto-carimbo no lugar do conteúdo
+# (segredo de justiça, ou anexo não público). O prazo está correndo e não há
+# como saber do quê — só abrindo o processo no tribunal. Misturar isso com
+# "A IDENTIFICAR" esconde do advogado a única situação em que ele PRECISA
+# entrar no sistema do tribunal.
+ATO_TEOR_INDISPONIVEL = "TEOR INDISPONÍVEL — ABRIR NO TRIBUNAL"
+
+_CARIMBOS_SEM_TEOR = (
+    "ARQUIVOS DIGITAIS INDISPONÍVEIS",
+    "NÃO FORAM PUBLICADOS",
+    "NAO FORAM PUBLICADOS",
+)
+
+
+def _sem_teor(pub) -> bool:
+    texto = (pub.get("teor") or "").strip().upper()
+    if not texto:
+        return True
+    return any(c in texto for c in _CARIMBOS_SEM_TEOR)
+
 
 def _tipo_data(pub) -> str:
     """"publicacao" se a fonte já entrega a data de publicação; senão
@@ -49,7 +70,7 @@ def processar_publicacoes(publicacoes, processos=None) -> dict:
         por_numero[r["numero"]] = dict(r)
     con.close()
 
-    novas = prazos_criados = sem_ato = sem_area = 0
+    novas = prazos_criados = sem_ato = sem_area = sem_teor = 0
     import carteira as _cart
     for pub in publicacoes:
         pub["processo"] = _cart.formatar_numero(pub.get("processo", ""))
@@ -96,11 +117,34 @@ def processar_publicacoes(publicacoes, processos=None) -> dict:
             con2.commit(); con2.close()
             por_numero[pub["processo"]]["area"] = area
 
+        area_gravar = "a_confirmar" if area_desconhecida else area
+
+        # Teor não publicado: não há o que classificar. Rotula como tal para
+        # o advogado ver que precisa abrir o processo, em vez de deixar a
+        # publicação parecendo um ato que o sistema não soube ler.
+        if _sem_teor(pub):
+            sem_teor += 1
+            if db.criar_prazo(pub_id, pub["processo"], area_gravar,
+                              ATO_TEOR_INDISPONIVEL,
+                              None, None, None, "teor não publicado"):
+                prazos_criados += 1
+            continue
+
         if cls["prazo_dias"] is None:
             # Ato não reconhecido: cria mesmo assim, SEM data, para o advogado
             # revisar. Publicação silenciosamente ignorada = prazo perdido.
-            sem_ato += 1
-            if db.criar_prazo(pub_id, pub["processo"], area, "A IDENTIFICAR",
+            #
+            # Mas se a classificação RECONHECEU o ato e apenas não há prazo em
+            # dias (regra com dias nulo: audiência, perícia, juntada, ato
+            # ordinatório), preserva o rótulo. Descartá-lo aqui — como se
+            # fazia — apagava o trabalho das regras e mandava para "A
+            # IDENTIFICAR" tudo que era corretamente identificado.
+            ato_pendente = (cls["ato"] or "").strip()
+            if not ato_pendente or ato_pendente.lower() == "a identificar":
+                ato_pendente = "A IDENTIFICAR"
+                sem_ato += 1
+            if db.criar_prazo(pub_id, pub["processo"], area_gravar,
+                              ato_pendente,
                               None, None, None, cls["fonte"]):
                 prazos_criados += 1
             continue
@@ -122,15 +166,15 @@ def processar_publicacoes(publicacoes, processos=None) -> dict:
         fonte = cls.get("fonte") or "sem prazo"
         if cls.get("conflito"):
             fonte += f" · {cls['conflito']}"
-        if db.criar_prazo(pub_id, pub["processo"],
-                          "a_confirmar" if area_desconhecida else area, ato,
+        if db.criar_prazo(pub_id, pub["processo"], area_gravar, ato,
                           cls["prazo_dias"], calc["data_fatal"],
                           calc["prazo_interno"], fonte,
                           cls.get("trecho", "")):
             prazos_criados += 1
 
     resumo = {"publicacoes_novas": novas, "prazos_criados": prazos_criados,
-              "a_identificar": sem_ato, "area_a_confirmar": sem_area}
+              "a_identificar": sem_ato, "area_a_confirmar": sem_area,
+              "teor_indisponivel": sem_teor}
     db.registrar("ingestao", "", str(resumo))
     return resumo
 
@@ -168,6 +212,16 @@ def recalcular_pendentes(apenas_pendentes: bool = True) -> dict:
     for p in prazos:
         pub = pubs.get(p["publicacao_id"], {})
         teor = pub.get("teor", "")
+
+        # Publicação sem teor publicado: rotula e segue. Não há classificação
+        # possível e nunca haverá — reprocessar todo dia não muda isso.
+        if _sem_teor(pub):
+            if p["ato"] != ATO_TEOR_INDISPONIVEL:
+                con.execute("UPDATE prazos SET ato=?, fonte=? WHERE id=?",
+                            (ATO_TEOR_INDISPONIVEL, "teor não publicado", p["id"]))
+                mudou += 1
+            continue
+
         cls = classificar(teor, "")
 
         area = (procs.get(p["processo"], {}) or {}).get("area") or ""
@@ -176,8 +230,27 @@ def recalcular_pendentes(apenas_pendentes: bool = True) -> dict:
         area_final = area or "a_confirmar"
 
         dias = cls["prazo_dias"] if cls["prazo_dias"] is not None else p["prazo_dias"]
-        if not dias or not pub.get("data_disponibilizacao"):
+
+        # Sem prazo em dias, o cálculo não se aplica — mas o ATO pode ter sido
+        # reconhecido agora por uma regra nova. Antes este caminho fazia
+        # `continue` seco, e nada do que já estava no banco como
+        # "A IDENTIFICAR" era jamais promovido, por melhores que ficassem as
+        # regras. É o que tornava o recálculo inútil justamente para os casos
+        # que mais precisavam dele.
+        if not dias:
+            novo_ato = (cls["ato"] or "").strip()
+            if (novo_ato
+                    and novo_ato.lower() != "a identificar"
+                    and novo_ato != p["ato"]):
+                con.execute("UPDATE prazos SET ato=?, fonte=?, trecho=? WHERE id=?",
+                            (novo_ato, cls.get("fonte") or p["fonte"],
+                             cls.get("trecho", ""), p["id"]))
+                mudou += 1
             continue
+
+        if not pub.get("data_disponibilizacao"):
+            continue
+
         base = date.fromisoformat(str(pub["data_disponibilizacao"])[:10])
         calc = calcular_prazo(base, int(dias), area_para_calculo(area_final),
                               contagem_forcada=cls.get("contagem_declarada", ""),

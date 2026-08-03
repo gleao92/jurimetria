@@ -19,3 +19,7 @@ backup*.db
 venv/
 *.log
 .DS_Store
+
+config.local.bat
+*.pfx
+*.p12

@@ -131,6 +131,17 @@ def _migrar(con):
         except Exception:
             con.rollback()
 
+    # Uma publicação = um prazo. Garantia no BANCO, não só no código: se algum
+    # caminho tentar inserir a segunda, o banco recusa. Falha em silêncio (e
+    # segue) se ainda houver duplicata da época em que a regra não existia —
+    # nesse caso rode dedupe_prazos.sql primeiro.
+    try:
+        con.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_prazos_publicacao "
+                    "ON prazos (publicacao_id)")
+        con.commit()
+    except Exception:
+        con.rollback()
+
 
 def _hash(*partes) -> str:
     return hashlib.sha1("|".join(str(p) for p in partes).encode()).hexdigest()[:16]
@@ -173,10 +184,24 @@ def salvar_publicacao(pub) -> tuple[str, bool]:
 
 def criar_prazo(publicacao_id, processo, area, ato, prazo_dias,
                 data_fatal, prazo_interno, fonte, trecho="") -> bool:
-    """Cria o prazo em 'pendente_revisao'. Nada vale sem o advogado confirmar."""
-    pid = _hash(publicacao_id, ato or "?")
+    """Cria o prazo em 'pendente_revisao'. Nada vale sem o advogado confirmar.
+
+    IDENTIDADE = publicacao_id, e só.
+
+    Antes o id era hash(publicacao_id, ato) e a checagem de existência usava
+    esse id. Como o ATO é mutável — o recálculo o reescreve quando uma regra
+    melhora —, mudar o ato mudava a identidade, a linha antiga deixava de ser
+    encontrada e a captura seguinte criava uma SEGUNDA linha para a mesma
+    intimação. O painel passava a mostrar o mesmo prazo duas vezes.
+
+    Uma publicação gera um prazo. É esta a invariante, e ela agora está
+    também no banco (índice único em publicacao_id, criado em _migrar), para
+    não depender de nenhum caminho de código lembrar dela.
+    """
+    pid = _hash(publicacao_id)
     con = conectar()
-    if con.execute("SELECT 1 FROM prazos WHERE id=?", (pid,)).fetchone():
+    if con.execute("SELECT 1 FROM prazos WHERE publicacao_id=?",
+                   (publicacao_id,)).fetchone():
         con.close(); return False
     con.execute("""INSERT INTO prazos
         (id,publicacao_id,processo,area,ato,prazo_dias,data_fatal,prazo_interno,
