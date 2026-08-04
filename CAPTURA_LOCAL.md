@@ -1,9 +1,9 @@
 # Captura diária no computador do escritório
 
-> **Prefira o proxy na Oracle Cloud** (ver `PROXY_ORACLE.md`). Com o proxy no
-> ar, a captura roda na nuvem automaticamente e **este script deixa de ser
-> necessário**. Use este caminho só como fallback enquanto a VM não está pronta,
-> ou se você não quiser manter uma VM ligada.
+> **Este é o caminho de produção.** O DJEN recusa IP fora do Brasil (`403`),
+> e o único IP brasileiro confiável que você tem hoje é a conexão do escritório.
+> Então a captura roda aqui e grava direto no banco na nuvem; o painel na web
+> lê esse mesmo banco.
 
 ## Por que a captura fica aqui e o painel na nuvem
 
@@ -112,6 +112,7 @@ prazo que falha em silêncio é pior que sistema nenhum.
 
 ## Quando isso deixa de ser necessário
 
-No dia em que o proxy na Oracle Cloud estiver no ar (ver `PROXY_ORACLE.md`),
-a captura volta para dentro do app na nuvem e este script deixa de fazer falta.
-Enquanto o painel estiver em servidor estrangeiro sem proxy, ele é o caminho.
+No dia em que você tiver um servidor **no Brasil** (uma VPS em São Paulo, por
+exemplo), a captura pode voltar para dentro dele e este script deixa de fazer
+falta. Enquanto o painel estiver em servidor estrangeiro, o PC do escritório é
+o caminho.
