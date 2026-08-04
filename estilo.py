@@ -340,6 +340,40 @@ div[data-testid="stExpander"]{
 .secao-rica .d{ font-size:.79rem; color:var(--muted); }
 
 .topo .sub{ font-size:.87rem; color:var(--muted); margin-top:.32rem; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CORREÇÃO DE LARGURA DO CARTÃO
+
+   Sintoma: o ato quebrava caractere a caractere, na vertical, e as
+   etiquetas empilhavam uma por linha.
+
+   Causa: `flex:1` equivale a `flex:1 1 0%` — o bloco de texto parte de
+   largura ZERO e só cresce se o flex distribuir o espaço. Quando o
+   container pai não tem largura resolvida (o markdown do Streamlit
+   dentro de st.columns), ele fica em zero de fato, enquanto a caixa da
+   contagem se mantém pelo `flex-shrink:0`. Daí a coluna de letras.
+
+   Correção: `flex:1 1 auto` faz o bloco partir do tamanho do conteúdo,
+   e as larguras explícitas garantem que o cartão ocupe a coluna inteira.
+
+   Fica no FIM do arquivo de propósito: precisa vencer as duas
+   definições anteriores de .cartao por ordem de cascata.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cartao{ width:100%; box-sizing:border-box; }
+.cartao-topo, .cartao-linha{
+  display:flex; gap:.9rem; align-items:flex-start; width:100%;
+}
+.cartao-info, .cartao-corpo{ flex:1 1 auto; min-width:0; }
+.contagem{ flex:0 0 auto; }
+.cartao .ato, .cartao .proc, .cartao .cliente{
+  overflow-wrap:break-word; word-break:normal;
+}
+.etiquetas, .tags{ display:flex; flex-wrap:wrap; width:100%; }
+.cartao-pe{ width:100%; }
+
+/* o markdown do Streamlit também precisa ocupar a coluna toda */
+[data-testid="stMarkdownContainer"]{ width:100%; }
 </style>
 """
 
@@ -498,16 +532,15 @@ CLASSE_AREA = {"civel": ("tag-civel", "Cível"),
                "a_confirmar": ("tag-confirmar", "Área a confirmar")}
 
 
-def cartao(numero: str, unidade: str, nivel: str, ato: str, processo: str,
-           cliente: str, area: str = "", fonte: str = "", status: str = "",
-           orgao: str = "", fatal: str = "", interno: str = "") -> str:
-    """Cartão de prazo.
+def cartao_antigo(numero: str, unidade: str, nivel: str, ato: str, processo: str,
+                  cliente: str, area: str = "", fonte: str = "", status: str = "",
+                  orgao: str = "", fatal: str = "", interno: str = "") -> str:
+    """Assinatura ANTIGA do cartão, mantida só por referência.
 
-    As etiquetas no topo existem para varrer sem ler: a ÁREA muda a forma de
-    contar (dias úteis x corridos), e a ORIGEM do prazo diz se a data foi lida
-    na publicação ou presumida. São as duas coisas que o advogado precisa saber
-    antes de confiar na data — por isso ganham destaque, não ficam em texto
-    corrido no rodapé.
+    Antes se chamava `cartao` e era sobrescrita pela definição de baixo —
+    ou seja, já não era chamada por ninguém. Renomeada para o nome deixar
+    de mentir; se algum módulo ainda depender dela, o erro aparece na hora
+    em vez de silenciosamente pegar a outra função.
     """
     cls_area, rot_area = CLASSE_AREA.get(area, ("tag-confirmar", "Área a confirmar"))
     tags = [f'<span class="tag {cls_area}">{rot_area}</span>']
