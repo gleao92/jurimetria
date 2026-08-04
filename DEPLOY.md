@@ -2,7 +2,7 @@
 
 > Este arquivo consolida os três guias de deploy anteriores
 > (DEPLOY_RAILWAY.md e DEPLOY_SUPABASE.md foram removidos; o conteúdo
-> está aqui). Se você leu um deles antes, é a mesma coisa, organizada melhor.
+> está aqui).
 
 ## Antes de tudo: o que NÃO fazer
 
@@ -31,19 +31,25 @@ Três peças, cada uma no lugar certo:
 |------|-----------|---------|
 | Painel (Streamlit) | Railway | acessível de qualquer lugar |
 | Banco (Postgres) | Supabase | gerenciado, com backup |
-| Captura (DJEN) | Oracle VM em SP **ou** PC do escritório | precisa de IP brasileiro |
+| Captura (DJEN) | **PC do escritório** (IP brasileiro) | o DJEN recusa IP fora do Brasil |
 
-O DJEN recusa consulta de IP fora do Brasil (erro `403`). A captura precisa de
-um IP brasileiro; o painel precisa estar acessível de qualquer lugar. São
-exigências diferentes — por isso a captura vive separada do painel.
+O DJEN recusa consulta de IP fora do Brasil (erro `403`). O Railway roda em
+servidores fora do Brasil, então a captura **não pode** rodar lá. O único IP
+brasileiro confiável que você tem hoje é a conexão do escritório — então a
+captura roda no PC do escritório e grava direto no banco na nuvem. O painel na
+web lê esse mesmo banco e mostra tudo na hora.
 
-**Duas formas de resolver a captura**, em ordem de recomendação:
+Não é remendo: separar captura de exibição é arquitetura comum. O que a
+captura precisa é de um IP brasileiro; o painel precisa estar acessível de
+qualquer lugar. São exigências diferentes.
 
-1. **Proxy na Oracle Cloud (São Paulo)** — a captura roda na nuvem, 100%
-   automática, não depende do PC do escritório estar ligado.
-   Ver **PROXY_ORACLE.md**.
-2. **Script no PC do escritório** — fallback enquanto a VM não sobe.
-   Ver **CAPTURA_LOCAL.md**.
+**A captura local é o caminho de produção.** Ver **CAPTURA_LOCAL.md** para
+instalação e agendamento automático.
+
+> No futuro, se você passar a ter um servidor **no Brasil** (VPS em São
+> Paulo, etc.), a captura pode voltar para dentro do app na nuvem e o script
+> local deixa de ser necessário. Até lá, o PC do escritório é a fonte de IP
+> brasileiro.
 
 ---
 
@@ -59,7 +65,7 @@ exigências diferentes — por isso a captura vive separada do painel.
 4. Troque `[YOUR-PASSWORD]` pela senha do **banco** (definida ao criar o
    projeto, não a senha da conta Supabase).
 
-Guarde a string. Você vai colá-la no Railway no passo 3.
+Guarde a string. Você vai colá-la no Railway no passo 3 e no `capturar.bat`.
 
 ### 2. Código no GitHub (privado)
 
@@ -106,12 +112,11 @@ DATABASE_URL = postgresql://postgres.SEU_REF:SENHA@aws-0-REGIAO.pooler.supabase.
    tipo `tempestivo-production.up.railway.app`. Abra — vai aparecer a tela
    de criar o acesso do advogado. Está no ar.
 
-### 4. Captura com IP brasileiro
+### 4. Captura no PC do escritório (IP brasileiro)
 
-- **Opção A (recomendada):** Proxy na Oracle Cloud → **PROXY_ORACLE.md**.
-  A captura roda na nuvem, automática, sem depender do PC do escritório.
-- **Opção B (fallback):** Script no PC do escritório → **CAPTURA_LOCAL.md**.
-  Use enquanto a VM não está pronta.
+A captura **não roda no Railway** (IP fora do Brasil → `403`). Ela roda no
+PC do escritório, agenda no Agendador de Tarefas do Windows e grava direto
+no banco na nuvem. Passo a passo completo em **CAPTURA_LOCAL.md**.
 
 ---
 
@@ -141,6 +146,9 @@ docker compose exec -T app cat /app/dados/controladoria.db > backup-$(date +%F).
 Sem backup automático, um erro de operação apaga o histórico de prazos do
 escritório. Isto não é opcional.
 
+> **Atenção:** se a VPS for fora do Brasil, a captura continua precisando do
+> PC do escritório (IP brasileiro). A VPS só hospeda o painel e o banco.
+
 ---
 
 ## Se der errado
@@ -161,8 +169,8 @@ O `railway.json` já define isso, mas se você mexeu no comando, é aqui.
 **App lento no primeiro acesso** → normal. O plano gratuito "dorme" e leva
 alguns segundos para acordar na primeira visita.
 
-**Captura retorna 403** → IP fora do Brasil. Suba o proxy (PROXY_ORACLE.md)
-ou rode a captura no PC do escritório (CAPTURA_LOCAL.md).
+**Captura retorna 403** → está rodando de IP fora do Brasil. A captura tem
+que rodar no PC do escritório (CAPTURA_LOCAL.md), não no Railway.
 
 ---
 
