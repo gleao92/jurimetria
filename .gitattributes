@@ -1,7 +1,16 @@
+<<<<<<< HEAD
 * text=auto eol=lf
 *.py text eol=lf
 *.md text eol=lf
 Dockerfile text eol=lf
 Caddyfile text eol=lf
 Procfile text eol=lf
+=======
+﻿* text=auto eol=lf
+*.py text eol=lf
+*.md text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+Procfile text eol=lf
+>>>>>>> d618693 (chore: normaliza fim de linha para LF)
 *.sh text eol=lf
