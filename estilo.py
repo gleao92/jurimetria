@@ -24,6 +24,29 @@ Vermelho, âmbar e verde aparecem apenas no numeral da contagem e nas etiquetas
 da agenda. Nada mais é colorido por gosto.
 """
 
+import html
+import re
+
+
+def _seguro(texto) -> str:
+    """Prepara texto de fora (publicação capturada, digitado pelo advogado)
+    para entrar num f-string HTML renderizado com unsafe_allow_html.
+
+    Dois problemas achados no cartão de prazo em produção, ambos com a mesma
+    causa: um valor dinâmico (ato, cliente, órgão) sem sanitização, colado
+    direto no meio do HTML. Um `<` ou `"` vindo do teor de uma publicação real
+    quebra a tag seguinte; uma quebra de linha embutida cria uma "linha em
+    branco" no meio do bloco, e o Markdown do Streamlit passa a tratar o resto
+    do cartão (a caixa de contagem) como texto/bloco de código — foi exatamente
+    o `<div class="contagem...` aparecendo cru na tela. `html.escape` cobre o
+    primeiro caso; colapsar quebras de linha em espaço cobre o segundo.
+    """
+    if texto is None:
+        return ""
+    plano = re.sub(r"\s+", " ", str(texto)).strip()
+    return html.escape(plano)
+
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap');
@@ -513,16 +536,16 @@ CSS_AGENDA = """
 def linha(cor: str, numero: str, unidade: str, ato: str,
           cliente: str, meta: str, selo: str = "") -> str:
     """Uma linha do registro: contagem na margem, conteúdo ao lado."""
-    marca = (f'<span class="selo" style="color:{cor}">{selo}</span>' if selo else "")
+    marca = (f'<span class="selo" style="color:{cor}">{_seguro(selo)}</span>' if selo else "")
     return f"""
 <div class="linha">
   <div class="conta" style="color:{cor}">
-    <span class="num">{numero}</span><span class="un">{unidade}</span>
+    <span class="num">{_seguro(numero)}</span><span class="un">{_seguro(unidade)}</span>
   </div>
   <div class="corpo">
-    <div class="ato">{ato}{marca}</div>
-    <div class="cliente">{cliente}</div>
-    <div class="meta">{meta}</div>
+    <div class="ato">{_seguro(ato)}{marca}</div>
+    <div class="cliente">{_seguro(cliente)}</div>
+    <div class="meta">{_seguro(meta)}</div>
   </div>
 </div>"""
 
@@ -634,27 +657,27 @@ def cartao(p: dict, numero: str, unidade: str, tom: str,
     """
     pe = []
     if orgao:
-        pe.append(f'<span><span class="ms">account_balance</span>{orgao}</span>')
+        pe.append(f'<span><span class="ms">account_balance</span>{_seguro(orgao)}</span>')
     if fatal:
-        pe.append(f'<span><span class="ms">schedule</span>Fatal: <b>{fatal}</b></span>')
+        pe.append(f'<span><span class="ms">schedule</span>Fatal: <b>{_seguro(fatal)}</b></span>')
     if interno:
-        pe.append(f'<span>Preparar até {interno}</span>')
+        pe.append(f'<span>Preparar até {_seguro(interno)}</span>')
     rodape = f'<div class="cartao-pe">{"".join(pe)}</div>' if pe else ""
 
     cliente = p.get("cliente") or ""
-    linha_cliente = f'<div class="cliente">{cliente}</div>' if cliente else ""
+    linha_cliente = f'<div class="cliente">{_seguro(cliente)}</div>' if cliente else ""
 
     return f"""
 <div class="cartao">
   <div class="cartao-topo">
     <div class="cartao-info">
       {etiquetas_do_prazo(p)}
-      <div class="ato">{p.get("ato") or "Prazo"}</div>
-      <div class="proc">{processo}</div>
+      <div class="ato">{_seguro(p.get("ato") or "Prazo")}</div>
+      <div class="proc">{_seguro(processo)}</div>
       {linha_cliente}
     </div>
     <div class="contagem ct-{tom}">
-      <span class="n">{numero}</span><span class="u">{unidade}</span>
+      <span class="n">{_seguro(numero)}</span><span class="u">{_seguro(unidade)}</span>
     </div>
   </div>
   {rodape}
