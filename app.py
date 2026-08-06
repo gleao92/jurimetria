@@ -129,8 +129,10 @@ TELA = st.session_state["tela"]
 
 # ══════════════════ barra lateral ══════════════════
 with st.sidebar:
-    st.markdown(f'<div class="marca-barra">{NOME_SISTEMA}'
-                f'<small>{SUBTITULO}</small></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="marca-barra"><div class="icone"><span class="ms">balance</span></div>'
+        f'<div><span class="nome">{NOME_SISTEMA}</span><small>{SUBTITULO}</small></div></div>',
+        unsafe_allow_html=True)
 
     st.markdown('<div class="grupo-barra">Painel</div>', unsafe_allow_html=True)
     for chave, rotulo, icone in TELAS:
@@ -153,8 +155,13 @@ with st.sidebar:
 
     st.markdown('<div class="grupo-barra">Captura de Publicações</div>', unsafe_allow_html=True)
     cfg_l = configuracao.carregar()
-    st.caption(f"🟢 **Captura Local Ativa**")
-    st.caption(f"OAB {cfg_l.get('oab_numero', '61423')}/{cfg_l.get('oab_uf', 'GO')} · Execução automática via `capturar.bat` (IP Brasil)")
+    st.markdown(
+        '<div class="captura-status ativa">'
+        '<div class="rot"><span class="ponto"></span>Captura local ativa</div>'
+        f'<div class="det">OAB {cfg_l.get("oab_numero", "61423")}/'
+        f'{cfg_l.get("oab_uf", "GO")}</div>'
+        '<div class="sub">Execução automática via <code>capturar.bat</code> '
+        '(IP Brasil)</div></div>', unsafe_allow_html=True)
 
     st.markdown(f'<div class="rodape-barra"><b>{USER["nome"]}</b>'
                 f'<span>{USER["papel"]}</span></div>', unsafe_allow_html=True)
@@ -207,12 +214,14 @@ st.markdown(
 if TELA != "ajustes":
     st.markdown(
         f'<div class="situacao">'
-        f'<div><b>{len(revisar)}</b><span>a revisar</span></div>'
-        f'<div><b>{len(confirmados)}</b><span>confirmados</span></div>'
-        f'<div><b style="color:var(--urgente)">{len(criticos)}</b>'
-        f'<span>vencem em até 2 dias</span></div>'
-        f'<div><b style="color:var(--urgente)">{len(vencidos)}</b>'
-        f'<span>vencidos</span></div></div>', unsafe_allow_html=True)
+        f'<div class="tile-azul"><span class="rot"><span class="ms">schedule</span>'
+        f'a revisar</span><b>{len(revisar)}</b></div>'
+        f'<div class="tile-esmeralda"><span class="rot"><span class="ms">check_circle</span>'
+        f'confirmados</span><b>{len(confirmados)}</b></div>'
+        f'<div class="tile-ambar"><span class="rot"><span class="ms">warning</span>'
+        f'vencem em até 2 dias</span><b>{len(criticos)}</b></div>'
+        f'<div class="tile-rosa"><span class="rot"><span class="ms">gpp_maybe</span>'
+        f'vencidos</span><b>{len(vencidos)}</b></div></div>', unsafe_allow_html=True)
 
 # CTX para renderização das telas
 
