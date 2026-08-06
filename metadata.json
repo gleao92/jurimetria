@@ -1,6 +1,0 @@
-{
-  "name": "Tempestivo - Controladoria de Prazos",
-  "description": "Controladoria de prazos processuais para advogados (cível, criminal e rural) com verificação e revisão obrigatória.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
