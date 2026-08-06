@@ -38,7 +38,7 @@ if _faltando:
 import db, auth, pipeline, captura, configuracao, estilo
 from config import NOME_SISTEMA, SUBTITULO, PAPEIS
 from comum import urgencia, DIAS_PT, MESES_PT
-from prazos import eh_dia_util, nome_do_feriado
+from prazos import eh_dia_util, nome_do_feriado, dias_uteis_entre
 import vista_hoje as v_hoje
 import vista_agenda as v_agenda
 import vista_prazos as v_prazos
@@ -229,6 +229,24 @@ if TELA != "ajustes":
 
 if not FONTE_CONECTADA and TELA != "ajustes":
     st.info("Mostrando dados de exemplo. Ligue uma fonte de publicações em Ajustes.")
+
+# A captura roda fora daqui, no PC do escritório (CAPTURA_LOCAL.md) — o painel
+# só sabe que ela está viva pelo rastro que ela deixa no log a cada execução.
+# Sistema de prazo que falha em silêncio é pior que sistema nenhum: por isso
+# este aviso é automático, e não depende do advogado lembrar de checar.
+if FONTE_CONECTADA and TELA != "ajustes":
+    _ultima = db.ultima_captura()
+    if _ultima is None:
+        st.warning("**Nenhuma captura registrada ainda.** Confira se a tarefa "
+                   "agendada no PC do escritório rodou (CAPTURA_LOCAL.md).")
+    else:
+        _dias_parada = dias_uteis_entre(_ultima.date(), HOJE)
+        if _dias_parada >= 2:
+            st.warning(
+                f"**A captura não roda há {_dias_parada} dias úteis** "
+                f"(última em {_ultima.strftime('%d/%m às %H:%M')}). Confira o "
+                "Agendador de Tarefas no PC do escritório — publicação não "
+                "capturada é prazo que pode passar em branco.")
 
 CTX = {"USER": USER, "PODE_CONFIRMAR": PODE_CONFIRMAR, "HOJE": HOJE,
        "FONTE_CONECTADA": FONTE_CONECTADA, "ativos": ativos,
