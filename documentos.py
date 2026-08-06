@@ -92,6 +92,32 @@ def listar(cliente: str = None, processo: str = None,
     return r
 
 
+def clientes_conhecidos() -> list[str]:
+    """Nomes de cliente já vistos — na carteira (processos) ou em documentos
+    já enviados. Alimenta o filtro/seletor, pra não depender do usuário
+    digitar o nome exatamente igual."""
+    con = db.conectar()
+    a = [r[0] if not hasattr(r, "keys") else r["cliente"] for r in
+         con.execute("SELECT DISTINCT cliente FROM processos "
+                     "WHERE cliente IS NOT NULL AND cliente != ''").fetchall()]
+    b = [r[0] if not hasattr(r, "keys") else r["cliente"] for r in
+         con.execute("SELECT DISTINCT cliente FROM documentos "
+                     "WHERE cliente IS NOT NULL AND cliente != ''").fetchall()]
+    con.close()
+    return sorted(set(a) | set(b))
+
+
+def processos_conhecidos() -> list[str]:
+    con = db.conectar()
+    a = [r[0] if not hasattr(r, "keys") else r["numero"] for r in
+         con.execute("SELECT DISTINCT numero FROM processos").fetchall()]
+    b = [r[0] if not hasattr(r, "keys") else r["processo"] for r in
+         con.execute("SELECT DISTINCT processo FROM documentos "
+                     "WHERE processo IS NOT NULL AND processo != ''").fetchall()]
+    con.close()
+    return sorted(set(a) | set(b))
+
+
 def obter_conteudo(did: str) -> bytes | None:
     con = db.conectar()
     r = con.execute("SELECT conteudo_b64 FROM documentos WHERE id=?", (did,)).fetchone()

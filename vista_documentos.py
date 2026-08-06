@@ -32,9 +32,13 @@ def render(ctx):
                         st.error(str(e))
 
     c1, c2 = st.columns(2)
-    f_cliente = c1.text_input("Filtrar por cliente")
-    f_processo = c2.text_input("Filtrar por processo")
-    docs = documentos.listar(cliente=f_cliente or None, processo=f_processo or None)
+    f_cliente = c1.selectbox("Filtrar por cliente",
+                             ["(Todos)"] + documentos.clientes_conhecidos())
+    f_processo = c2.selectbox("Filtrar por processo",
+                              ["(Todos)"] + documentos.processos_conhecidos())
+    docs = documentos.listar(
+        cliente=None if f_cliente == "(Todos)" else f_cliente,
+        processo=None if f_processo == "(Todos)" else f_processo)
 
     if not docs:
         st.caption("Nenhum documento enviado ainda.")
