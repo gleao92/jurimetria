@@ -37,7 +37,7 @@ def render(ctx):
             rot = {"civel": "Cível", "criminal": "Criminal",
                   "a_confirmar": "A confirmar"}
             df = pd.DataFrame({"Processos": area}).rename(index=rot)
-            st.bar_chart(df)
+            st.bar_chart(df, color="#F59E0B")
         else:
             st.caption("Nenhum processo cadastrado ainda.")
 
@@ -49,7 +49,7 @@ def render(ctx):
             rot = {"pendente_revisao": "A revisar", "confirmado": "Confirmado",
                   "cumprido": "Cumprido", "arquivado": "Arquivado"}
             df = pd.DataFrame({"Prazos": status}).rename(index=rot)
-            st.bar_chart(df)
+            st.bar_chart(df, color="#60A5FA")
         else:
             st.caption("Nenhum prazo cadastrado ainda.")
 
@@ -67,6 +67,6 @@ def render(ctx):
     carga = dados["carga_por_responsavel"]
     if carga:
         df = pd.DataFrame({"Tarefas abertas": carga})
-        st.bar_chart(df)
+        st.bar_chart(df, color="#34D399")
     else:
         st.caption("Nenhuma tarefa aberta no momento.")

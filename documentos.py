@@ -26,7 +26,7 @@ LIMITE_BYTES = 20 * 1024 * 1024  # 20 MB
 
 CATEGORIAS = {"contrato": "Contrato", "procuracao": "Procuração",
               "peticao": "Petição", "documento": "Documento do processo",
-              "outro": "Outro"}
+              "gravacao": "Gravação de reunião", "outro": "Outro"}
 
 
 def init():
@@ -70,7 +70,8 @@ def excluir(did: str, autor: str) -> None:
     db.registrar("documento_excluido", did, f"por {autor}")
 
 
-def listar(cliente: str = None, processo: str = None) -> list[dict]:
+def listar(cliente: str = None, processo: str = None,
+          categoria: str = None) -> list[dict]:
     """Lista SEM o conteúdo — só metadados, para não carregar todos os
     arquivos na memória só para montar uma tabela."""
     con = db.conectar()
@@ -81,6 +82,8 @@ def listar(cliente: str = None, processo: str = None) -> list[dict]:
         cond.append("cliente = ?"); args.append(cliente)
     if processo:
         cond.append("processo = ?"); args.append(processo)
+    if categoria:
+        cond.append("categoria = ?"); args.append(categoria)
     if cond:
         sql += " WHERE " + " AND ".join(cond)
     sql += " ORDER BY enviado_em DESC"

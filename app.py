@@ -19,7 +19,7 @@ _NECESSARIOS = [
     "tarefas", "financeiro", "documentos", "relatorios",
     "vista_hoje", "vista_agenda", "vista_prazos", "vista_processos",
     "vista_ajustes", "vista_tarefas", "vista_financeiro", "vista_documentos",
-    "vista_relatorios",
+    "vista_relatorios", "vista_reunioes",
 ]
 _faltando = []
 for _m in _NECESSARIOS:
@@ -50,6 +50,7 @@ import vista_tarefas as v_tarefas
 import vista_financeiro as v_financeiro
 import vista_documentos as v_documentos
 import vista_relatorios as v_relatorios
+import vista_reunioes as v_reunioes
 
 st.set_page_config(page_title=NOME_SISTEMA, page_icon="⚖️", layout="wide",
                    initial_sidebar_state="expanded")
@@ -126,6 +127,7 @@ TELAS = [
     ("processos", "Processos", ":material/folder:"),
     ("tarefas", "Tarefas", ":material/checklist:"),
     ("documentos", "Documentos", ":material/description:"),
+    ("reunioes", "Sala de Reunião", ":material/mic:"),
 ]
 # Financeiro e Relatórios expõem dado sensível (quanto o cliente deve, saúde
 # do caixa) — mesma régua já usada para Ajustes: só quem confirma prazo vê.
@@ -222,6 +224,7 @@ TITULOS = {
     "processos": ("Processos", "Sua carteira e a área de contagem de cada um."),
     "tarefas": ("Tarefas", "O que fazer além dos prazos do tribunal."),
     "documentos": ("Documentos", "Contratos, procurações, petições e afins."),
+    "reunioes": ("Sala de Reunião", "Grave a reunião pelo microfone e guarde o áudio."),
     "financeiro": ("Financeiro", "Honorários contratados e parcelas a receber."),
     "relatorios": ("Relatórios", "Como o escritório está indo, não só a fila do dia."),
     "ajustes": ("Ajustes", "Fonte das publicações, regras e feriados."),
@@ -269,6 +272,8 @@ elif TELA == "tarefas":
     v_tarefas.render(CTX)
 elif TELA == "documentos":
     v_documentos.render(CTX)
+elif TELA == "reunioes":
+    v_reunioes.render(CTX)
 elif TELA == "financeiro":
     v_financeiro.render(CTX)
 elif TELA == "relatorios":
