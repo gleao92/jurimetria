@@ -47,6 +47,25 @@ def _seguro(texto) -> str:
     return html.escape(plano)
 
 
+def _uma_linha(bruto: str) -> str:
+    """Achata o HTML do cartão/linha para uma única linha antes de devolver.
+
+    A causa raiz real do bug em produção: quando `cliente` (ou qualquer outro
+    campo opcional interpolado sozinho numa linha do template) vem vazio, a
+    substituição deixa uma linha só com os espaços de indentação do template
+    — e uma linha só com espaço/tab conta como "linha em branco" para o
+    CommonMark. Isso fecha o bloco de HTML no meio do cartão; o que vem
+    depois (a caixa `.contagem`, indentada com 4+ espaços) deixa de ser
+    reconhecido como continuação do HTML e vira bloco de código indentado —
+    exatamente o `<div class="contagem...` aparecendo cru na tela, com botão
+    de copiar. `_seguro()` sozinho não resolve: ele limpa o CONTEÚDO dinâmico,
+    mas essa linha em branco nasce da ESTRUTURA do template, não do dado.
+    Sem nenhuma quebra de linha no HTML devolvido, não existe "linha em
+    branco" possível.
+    """
+    return re.sub(r"\s+", " ", bruto).strip()
+
+
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap');
@@ -537,7 +556,7 @@ def linha(cor: str, numero: str, unidade: str, ato: str,
           cliente: str, meta: str, selo: str = "") -> str:
     """Uma linha do registro: contagem na margem, conteúdo ao lado."""
     marca = (f'<span class="selo" style="color:{cor}">{_seguro(selo)}</span>' if selo else "")
-    return f"""
+    return _uma_linha(f"""
 <div class="linha">
   <div class="conta" style="color:{cor}">
     <span class="num">{_seguro(numero)}</span><span class="un">{_seguro(unidade)}</span>
@@ -547,7 +566,7 @@ def linha(cor: str, numero: str, unidade: str, ato: str,
     <div class="cliente">{_seguro(cliente)}</div>
     <div class="meta">{_seguro(meta)}</div>
   </div>
-</div>"""
+</div>""")
 
 
 CLASSE_AREA = {"civel": ("tag-civel", "Cível"),
@@ -667,7 +686,7 @@ def cartao(p: dict, numero: str, unidade: str, tom: str,
     cliente = p.get("cliente") or ""
     linha_cliente = f'<div class="cliente">{_seguro(cliente)}</div>' if cliente else ""
 
-    return f"""
+    return _uma_linha(f"""
 <div class="cartao">
   <div class="cartao-topo">
     <div class="cartao-info">
@@ -681,7 +700,7 @@ def cartao(p: dict, numero: str, unidade: str, tom: str,
     </div>
   </div>
   {rodape}
-</div>"""
+</div>""")
 
 
 def tom_por_dias(n) -> str:
