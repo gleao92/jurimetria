@@ -1,0 +1,15 @@
+streamlit>=1.49          # width="stretch" (use_container_width foi removido)
+pandas>=2.0
+requests>=2.31
+# Para a versão de produção da classificação por IA (classificacao.py):
+# anthropic>=0.40
+# MNI — webservice SOAP do Judiciário (mni.py):
+zeep>=4.2                # MNI (webservice do Judiciário)
+
+# Para Postgres na nuvem (db.py detecta via DATABASE_URL):
+psycopg[binary]>=3.1    # Postgres/Supabase (só usado se DATABASE_URL estiver definida)
+# Para certificado A1 (certificado.py):
+# requests-pkcs12>=1.24
+# cryptography>=42
+icalendar>=6.0           # geração do .ics (RFC 5545)
+argon2-cffi>=23.1        # hash de senha (Argon2id)

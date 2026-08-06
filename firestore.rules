@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Security Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Processos Collection
+    match /processos/{processoId} {
+      allow read: if true;
+      allow create, update: if isValidId(processoId) && incoming().numero is string && incoming().numero.size() <= 100;
+      allow delete: if isValidId(processoId);
+    }
+
+    // Prazos Collection
+    match /prazos/{prazoId} {
+      allow read: if true;
+      allow create, update: if isValidId(prazoId) && incoming().id is string && incoming().processo is string;
+      allow delete: if isValidId(prazoId);
+    }
+
+    // Compromissos Collection
+    match /compromissos/{compromissoId} {
+      allow read: if true;
+      allow create, update: if isValidId(compromissoId) && incoming().titulo is string && incoming().tipo is string;
+      allow delete: if isValidId(compromissoId);
+    }
+
+    // Regras Collection
+    match /regras/{regraId} {
+      allow read: if true;
+      allow create, update: if isValidId(regraId) && incoming().padrao is string && incoming().rotulo is string;
+      allow delete: if isValidId(regraId);
+    }
+
+    // Feriados Collection
+    match /feriados/{feriadoId} {
+      allow read: if true;
+      allow create, update: if isValidId(feriadoId) && incoming().data is string && incoming().nome is string;
+      allow delete: if isValidId(feriadoId);
+    }
+
+    // Configuracao Collection
+    match /configuracao/{configId} {
+      allow read: if true;
+      allow create, update: if isValidId(configId);
+      allow delete: if isValidId(configId);
+    }
+
+    // Logs Collection
+    match /logs/{logId} {
+      allow read: if true;
+      allow create, update: if isValidId(logId) && incoming().id is string && incoming().acao is string;
+      allow delete: if isValidId(logId);
+    }
+
+    // Connection Test Document
+    match /test/connection {
+      allow read, write: if true;
+    }
+  }
+}
