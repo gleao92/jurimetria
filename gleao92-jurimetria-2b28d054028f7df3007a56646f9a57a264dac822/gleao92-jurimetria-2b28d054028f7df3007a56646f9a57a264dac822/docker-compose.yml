@@ -1,0 +1,58 @@
+# Deploy em VPS com HTTPS automático (Caddy) e disco persistente.
+#
+# Uso:
+#   1. cp .env.exemplo .env   e preencha
+#   2. docker compose up -d
+#
+# O Caddy emite e renova o certificado TLS sozinho, desde que o DNS do
+# domínio já aponte para o IP da VPS.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Disco PERSISTENTE. Sem isto o banco some a cada redeploy.
+      - dados:/app/dados
+    environment:
+      # SQLite dentro do volume (padrão). Para Postgres, defina
+      # DATABASE_URL no .env e esta linha é ignorada.
+      - DB_DIR=/app/dados
+    expose:
+      - "8501"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMINIO=${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  # Opcional: banco Postgres local. Descomente se preferir Postgres
+  # em vez de SQLite no volume, e aponte DATABASE_URL no .env para
+  # postgresql://tempestivo:SENHA@postgres:5432/tempestivo
+  #
+  # postgres:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: tempestivo
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_DB: tempestivo
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+volumes:
+  dados:
+  caddy_data:
+  caddy_config:
+  # pgdata:
