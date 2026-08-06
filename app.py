@@ -165,9 +165,6 @@ with st.sidebar:
                     st.error(f"{type(e).__name__}: {e}")
     else:
         st.caption("Nenhuma fonte ligada.")
-        with st.container(key="acao_exemplo"):
-            if st.button("Usar dados de exemplo", key="btn_exemplo"):
-                pipeline.carregar_exemplo(); st.rerun()
 
     st.markdown(f'<div class="rodape-barra"><b>{USER["nome"]}</b>'
                 f'<span>{USER["papel"]}</span></div>', unsafe_allow_html=True)
@@ -227,18 +224,17 @@ if TELA != "ajustes":
         f'<div><b style="color:var(--urgente)">{len(vencidos)}</b>'
         f'<span>vencidos</span></div></div>', unsafe_allow_html=True)
 
-if not FONTE_CONECTADA and TELA != "ajustes":
-    st.info("Mostrando dados de exemplo. Ligue uma fonte de publicações em Ajustes.")
-
 # A captura roda fora daqui, no PC do escritório (CAPTURA_LOCAL.md) — o painel
 # só sabe que ela está viva pelo rastro que ela deixa no log a cada execução.
-# Sistema de prazo que falha em silêncio é pior que sistema nenhum: por isso
-# este aviso é automático, e não depende do advogado lembrar de checar.
-if FONTE_CONECTADA and TELA != "ajustes":
+# Isto olha o rastro real da captura (db.ultima_captura), não um interruptor
+# manual em Ajustes: um interruptor esquecido em False não pode fazer o
+# painel alegar "dados de exemplo" com prazos reais na fila.
+if TELA != "ajustes":
     _ultima = db.ultima_captura()
     if _ultima is None:
-        st.warning("**Nenhuma captura registrada ainda.** Confira se a tarefa "
-                   "agendada no PC do escritório rodou (CAPTURA_LOCAL.md).")
+        st.info("Nenhuma publicação capturada ainda. Ligue uma fonte de "
+                 "publicações em Ajustes, ou confirme que a captura local "
+                 "(CAPTURA_LOCAL.md) já rodou.")
     else:
         _dias_parada = dias_uteis_entre(_ultima.date(), HOJE)
         if _dias_parada >= 2:
