@@ -269,3 +269,24 @@ def ultimos_logs(n=50):
     r = [dict(x) for x in con.execute(
         "SELECT * FROM log ORDER BY id DESC LIMIT ?", (n,)).fetchall()]
     con.close(); return r
+
+
+def ultima_captura():
+    """Quando a captura local rodou pela última vez (datetime ou None).
+
+    A captura roda fora do app, no PC do escritório (CAPTURA_LOCAL.md), e
+    grava direto no banco — o único jeito do painel saber que ela ainda está
+    viva é olhar o log que ela mesma deixa a cada execução. Sem essa
+    checagem, uma tarefa agendada que parou de rodar só é percebida quando
+    o advogado repara, por conta própria, que faz dias que nada muda — e
+    prazo perdido por captura silenciosamente parada é o cenário que este
+    sistema existe para evitar.
+    """
+    con = conectar()
+    r = con.execute(
+        "SELECT quando FROM log WHERE acao='ingestao' "
+        "ORDER BY quando DESC LIMIT 1").fetchone()
+    con.close()
+    if not r:
+        return None
+    return datetime.fromisoformat(r["quando"])
