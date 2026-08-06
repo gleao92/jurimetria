@@ -16,8 +16,10 @@ _NECESSARIOS = [
     "db", "auth", "pipeline", "captura", "configuracao", "estilo", "comum",
     "prazos", "painel", "calendario", "agenda", "carteira", "compromissos",
     "regras", "modelos", "classificacao", "extrator_prazo", "config",
+    "tarefas", "financeiro", "documentos", "relatorios",
     "vista_hoje", "vista_agenda", "vista_prazos", "vista_processos",
-    "vista_ajustes",
+    "vista_ajustes", "vista_tarefas", "vista_financeiro", "vista_documentos",
+    "vista_relatorios",
 ]
 _faltando = []
 for _m in _NECESSARIOS:
@@ -44,6 +46,10 @@ import vista_agenda as v_agenda
 import vista_prazos as v_prazos
 import vista_processos as v_processos
 import vista_ajustes as v_ajustes
+import vista_tarefas as v_tarefas
+import vista_financeiro as v_financeiro
+import vista_documentos as v_documentos
+import vista_relatorios as v_relatorios
 
 st.set_page_config(page_title=NOME_SISTEMA, page_icon="⚖️", layout="wide",
                    initial_sidebar_state="expanded")
@@ -118,11 +124,20 @@ TELAS = [
     ("agenda", "Agenda", ":material/calendar_month:"),
     ("prazos", "Prazos", ":material/timer:"),
     ("processos", "Processos", ":material/folder:"),
+    ("tarefas", "Tarefas", ":material/checklist:"),
+    ("documentos", "Documentos", ":material/description:"),
 ]
-if "tela" not in st.session_state or st.session_state["tela"] not in \
-        [t[0] for t in TELAS] + ["ajustes"]:
+# Financeiro e Relatórios expõem dado sensível (quanto o cliente deve, saúde
+# do caixa) — mesma régua já usada para Ajustes: só quem confirma prazo vê.
+TELAS_ESCRITORIO = [
+    ("financeiro", "Financeiro", ":material/payments:"),
+    ("relatorios", "Relatórios", ":material/monitoring:"),
+]
+_TODAS_TELAS = [t[0] for t in TELAS] + [t[0] for t in TELAS_ESCRITORIO] + ["ajustes"]
+if "tela" not in st.session_state or st.session_state["tela"] not in _TODAS_TELAS:
     st.session_state["tela"] = "hoje"
-if st.session_state["tela"] == "ajustes" and not PODE_CONFIRMAR:
+if st.session_state["tela"] in [t[0] for t in TELAS_ESCRITORIO] + ["ajustes"] \
+        and not PODE_CONFIRMAR:
     st.session_state["tela"] = "hoje"
 TELA = st.session_state["tela"]
 
@@ -145,6 +160,14 @@ with st.sidebar:
                 st.rerun()
 
     if PODE_CONFIRMAR:
+        st.markdown('<div class="grupo-barra">Escritório</div>', unsafe_allow_html=True)
+        for chave, rotulo, icone in TELAS_ESCRITORIO:
+            ativo = (TELA == chave)
+            with st.container(key=f"{'menuativo' if ativo else 'menu'}_{chave}"):
+                if st.button(rotulo, icon=icone, key=f"btn_{chave}", width="stretch"):
+                    st.session_state["tela"] = chave
+                    st.rerun()
+
         st.markdown('<div class="grupo-barra">Sistema</div>', unsafe_allow_html=True)
         ativo = (TELA == "ajustes")
         with st.container(key=f"{'menuativo' if ativo else 'menu'}_ajustes"):
@@ -197,6 +220,10 @@ TITULOS = {
     "agenda": ("Agenda", "Prazos e compromissos no calendário."),
     "prazos": ("Prazos", "Todos os prazos, com filtros e exportação."),
     "processos": ("Processos", "Sua carteira e a área de contagem de cada um."),
+    "tarefas": ("Tarefas", "O que fazer além dos prazos do tribunal."),
+    "documentos": ("Documentos", "Contratos, procurações, petições e afins."),
+    "financeiro": ("Financeiro", "Honorários contratados e parcelas a receber."),
+    "relatorios": ("Relatórios", "Como o escritório está indo, não só a fila do dia."),
     "ajustes": ("Ajustes", "Fonte das publicações, regras e feriados."),
 }
 extra = nome_do_feriado(HOJE)
@@ -210,8 +237,9 @@ st.markdown(
     f'{MESES_PT[HOJE.month-1]} de {HOJE.year}</b><br>{sub}</div></div>',
     unsafe_allow_html=True)
 
-# O painel de situação acompanha as telas de trabalho, não os Ajustes.
-if TELA != "ajustes":
+# O painel de situação acompanha as telas de trabalho. Ajustes não tem prazo
+# para mostrar; Financeiro e Relatórios já têm seus próprios números no topo.
+if TELA not in ("ajustes", "financeiro", "relatorios"):
     st.markdown(
         f'<div class="situacao">'
         f'<div class="tile-azul"><span class="rot"><span class="ms">schedule</span>'
@@ -237,5 +265,13 @@ elif TELA == "prazos":
     v_prazos.render(CTX)
 elif TELA == "processos":
     v_processos.render(CTX)
+elif TELA == "tarefas":
+    v_tarefas.render(CTX)
+elif TELA == "documentos":
+    v_documentos.render(CTX)
+elif TELA == "financeiro":
+    v_financeiro.render(CTX)
+elif TELA == "relatorios":
+    v_relatorios.render(CTX)
 elif TELA == "ajustes":
     v_ajustes.render(CTX)

@@ -106,7 +106,7 @@ def init():
     con.commit()
     _migrar(con)
     con.close()
-    for mod in ("regras", "compromissos"):
+    for mod in ("regras", "compromissos", "tarefas", "financeiro", "documentos"):
         try:
             __import__(mod).init()
         except Exception:
