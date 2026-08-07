@@ -21,28 +21,102 @@ from urllib.parse import quote
 import streamlit as st
 
 import captacao
-from config import (NOME_SISTEMA, NOME_ESCRITORIO, WHATSAPP_NUMERO,
-                    AREAS_ATUACAO, CIDADE_REGIAO)
+from config import (NOME_ESCRITORIO, SUBTITULO_ESCRITORIO, WHATSAPP_NUMERO,
+                    AREAS_ATUACAO, CIDADE_REGIAO, HERO_TITULO, HERO_SUBTITULO,
+                    MENSAGEM_WHATSAPP_PADRAO)
+
+_NUMERO_EXEMPLO = "5562900000000"
+
+# Paleta da marca do escritório (vinho + dourado sobre creme) — deliberadamente
+# DIFERENTE do tema escuro/âmbar do painel interno: aqui é a identidade visual
+# do escritório, de quem visita de fora; lá dentro é a ferramenta de trabalho.
+_CSS_FIRMA = """
+<style>
+.stApp{ background:#EDE6D8 !important; }
+.publica-hero{ border-bottom-color:rgba(92,31,48,.18) !important; }
+.publica-logo{
+  width:64px; height:64px; margin:0 auto 1rem;
+}
+.publica-marca{ color:#9C7A46 !important; }
+.publica-marca .nome{
+  font-family:'Playfair Display',Georgia,serif; font-size:1.3rem; font-weight:700;
+  color:#5C1F30; letter-spacing:.08em;
+}
+.publica-marca .sub{
+  display:block; font-size:.62rem; font-weight:600; letter-spacing:.18em;
+  color:#B8935A; text-transform:uppercase; margin-top:.25rem;
+}
+.publica-titulo{
+  font-family:'Playfair Display',Georgia,serif; font-size:2.6rem; font-weight:700;
+  color:#5C1F30; letter-spacing:-.02em; margin:1.3rem 0 .7rem;
+}
+.publica-hero p{ color:#5A4A3F !important; }
+.publica-hero .etq{
+  background:rgba(184,147,90,.14) !important; color:#7A5A28 !important;
+  border:1px solid rgba(184,147,90,.35) !important;
+}
+.secao{ color:#9C7A46 !important; border-bottom-color:rgba(92,31,48,.18) !important; }
+.publica-rodape{ color:#8A7A68 !important; border-top-color:rgba(92,31,48,.18) !important; }
+[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,
+[data-testid="stSelectbox"] input, [data-testid="stSelectbox"] [role="group"]{
+  background:#FBF8F2 !important; color:#3A2E28 !important;
+  border-color:#D9CFBC !important;
+}
+[data-testid="stSelectboxVirtualDropdown"] li{
+  background:#FBF8F2 !important; color:#3A2E28 !important;
+}
+[data-testid="stSelectboxVirtualDropdown"] li:hover{ background:#EDE0C8 !important; }
+[data-testid="stWidgetLabel"] p{ color:#5A4A3F !important; }
+[data-testid="stBaseLinkButton-primary"], [data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-primaryFormSubmit"]{
+  background:#5C1F30 !important; border-color:#5C1F30 !important;
+  color:#F5EFE3 !important;
+}
+[data-testid="stBaseLinkButton-primary"]:hover, [data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-primaryFormSubmit"]:hover{
+  background:#4A1826 !important; border-color:#4A1826 !important;
+}
+[data-testid="stCaptionContainer"], .stMarkdown p{ color:#5A4A3F; }
+</style>
+"""
 
 
 def _link_whatsapp(mensagem: str = "") -> str:
     numero = "".join(c for c in WHATSAPP_NUMERO if c.isdigit())
-    texto = quote(mensagem or f"Olá! Vim pelo site do {NOME_ESCRITORIO} "
-                             "e gostaria de falar com um advogado.")
+    texto = quote(mensagem or MENSAGEM_WHATSAPP_PADRAO)
     return f"https://wa.me/{numero}?text={texto}"
 
 
+_LOGO_SVG = """
+<svg class="publica-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="46" stroke="#B8935A" stroke-width="1.5"/>
+  <text x="50" y="46" text-anchor="middle" font-family="Playfair Display, Georgia, serif"
+        font-size="34" fill="#B8935A">M</text>
+  <line x1="50" y1="55" x2="50" y2="72" stroke="#B8935A" stroke-width="1.3"/>
+  <line x1="36" y1="60" x2="64" y2="60" stroke="#B8935A" stroke-width="1.3"/>
+  <path d="M30 60 L36 70 A7 7 0 0 1 24 70 Z" stroke="#B8935A" stroke-width="1.1" fill="none"/>
+  <path d="M70 60 L76 70 A7 7 0 0 1 64 70 Z" stroke="#B8935A" stroke-width="1.1" fill="none"/>
+</svg>
+"""
+
+
 def render():
-    numero_ok = WHATSAPP_NUMERO.replace("5562900000000", "") != ""
+    st.markdown(_CSS_FIRMA, unsafe_allow_html=True)
+    tags = "".join(f'<span class="etq">{a}</span>' for a in AREAS_ATUACAO)
     st.markdown(f"""
 <div class="publica-hero">
-  <div class="publica-marca"><span class="ms">balance</span>{NOME_ESCRITORIO}</div>
-  <h1>Precisa de um advogado?</h1>
-  <p>Atendimento em {', '.join(AREAS_ATUACAO)} — {CIDADE_REGIAO}.
-     Fale agora e receba retorno o mais rápido possível.</p>
+  {_LOGO_SVG}
+  <div class="publica-marca">
+    <span class="nome">{NOME_ESCRITORIO.upper()}</span>
+    <small class="sub">{SUBTITULO_ESCRITORIO}</small>
+  </div>
+  <div class="publica-titulo">{HERO_TITULO}</div>
+  <p>{HERO_SUBTITULO}</p>
+  <div class="etiquetas" style="justify-content:center; margin-top:1.3rem;">{tags}</div>
+  <p style="margin-top:1rem; font-size:.85rem;">{CIDADE_REGIAO}</p>
 </div>""", unsafe_allow_html=True)
 
-    if WHATSAPP_NUMERO == "5562900000000":
+    if WHATSAPP_NUMERO == _NUMERO_EXEMPLO:
         st.warning("**Número de WhatsApp ainda não configurado** — edite "
                    "`WHATSAPP_NUMERO` em `config.py` antes de divulgar este "
                    "link. Por enquanto o botão abaixo não vai funcionar de "
