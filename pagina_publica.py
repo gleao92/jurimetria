@@ -134,6 +134,29 @@ _CSS_FIRMA = """
   background:#4A1826 !important; border-color:#4A1826 !important;
 }
 [data-testid="stCaptionContainer"], .stMarkdown p{ color:#5A4A3F; }
+
+/* ─────────── ajustes para tela de celular ───────────
+   Sem estas regras a página funciona no mobile (o Streamlit já empilha
+   as colunas em uma só automaticamente e o link wa.me/... abre direto no
+   app do WhatsApp), mas o título e o padding do herói ficam grandes
+   demais na tela pequena, e a logo ocupa altura de tela cheia. */
+@media (max-width: 640px){
+  .block-container{
+    padding-top: 1rem !important;
+    padding-left: .8rem !important; padding-right: .8rem !important;
+  }
+  .publica-hero{ padding: 1.4rem .4rem 1.6rem !important; }
+  .publica-logo{ max-width: 150px !important; margin-bottom: .5rem !important; }
+  .publica-marca .nome{ font-size: 1.05rem !important; }
+  .publica-titulo{ font-size: 1.75rem !important; margin: .9rem 0 .5rem !important; }
+  .publica-hero p{ font-size: .95rem !important; }
+  .publica-hero .etq{ font-size: .68rem !important; padding: .18rem .4rem !important; }
+  /* botão do WhatsApp: mais alto, pra ser fácil de acertar com o dedo */
+  [data-testid="stBaseLinkButton-primary"] button,
+  [data-testid="stBaseLinkButton-primary"]{
+    min-height: 3rem !important; font-size: 1rem !important;
+  }
+}
 </style>
 """
 
@@ -173,13 +196,20 @@ def render():
     _tag_visualizacao()
     st.markdown(_CSS_FIRMA, unsafe_allow_html=True)
     tags = "".join(f'<span class="etq">{a}</span>' for a in AREAS_ATUACAO)
+    # A logo real (quando presente) já traz "MYCHELLE XAVIER / Advocacia e
+    # Consultoria Jurídica" desenhado nela — repetir isso como texto embaixo
+    # duplica o nome sem motivo, especialmente feio no celular. Só mostramos
+    # a marca em texto quando a logo caiu para o SVG de reserva (que é só um
+    # monograma "M" sem letras).
+    marca_html = "" if _LOGO_ARQUIVO.exists() else (
+        f'<div class="publica-marca">'
+        f'<span class="nome">{NOME_ESCRITORIO.upper()}</span>'
+        f'<small class="sub">{SUBTITULO_ESCRITORIO}</small></div>'
+    )
     st.markdown(f"""
 <div class="publica-hero">
   {_LOGO_SVG}
-  <div class="publica-marca">
-    <span class="nome">{NOME_ESCRITORIO.upper()}</span>
-    <small class="sub">{SUBTITULO_ESCRITORIO}</small>
-  </div>
+  {marca_html}
   <div class="publica-titulo">{HERO_TITULO}</div>
   <p>{HERO_SUBTITULO}</p>
   <div class="etiquetas" style="justify-content:center; margin-top:1.3rem;">{tags}</div>
