@@ -16,10 +16,10 @@ _NECESSARIOS = [
     "db", "auth", "pipeline", "captura", "configuracao", "estilo", "comum",
     "prazos", "painel", "calendario", "agenda", "carteira", "compromissos",
     "regras", "modelos", "classificacao", "extrator_prazo", "config",
-    "tarefas", "financeiro", "documentos", "relatorios",
+    "tarefas", "financeiro", "documentos", "relatorios", "captacao",
     "vista_hoje", "vista_agenda", "vista_prazos", "vista_processos",
     "vista_ajustes", "vista_tarefas", "vista_financeiro", "vista_documentos",
-    "vista_relatorios", "vista_reunioes",
+    "vista_relatorios", "vista_reunioes", "vista_captacao",
 ]
 _faltando = []
 for _m in _NECESSARIOS:
@@ -51,6 +51,7 @@ import vista_financeiro as v_financeiro
 import vista_documentos as v_documentos
 import vista_relatorios as v_relatorios
 import vista_reunioes as v_reunioes
+import vista_captacao as v_captacao
 
 st.set_page_config(page_title=NOME_SISTEMA, page_icon="⚖️", layout="wide",
                    initial_sidebar_state="expanded")
@@ -128,6 +129,7 @@ TELAS = [
     ("tarefas", "Tarefas", ":material/checklist:"),
     ("documentos", "Documentos", ":material/description:"),
     ("reunioes", "Sala de Reunião", ":material/mic:"),
+    ("captacao", "Captação", ":material/groups:"),
 ]
 # Financeiro e Relatórios expõem dado sensível (quanto o cliente deve, saúde
 # do caixa) — mesma régua já usada para Ajustes: só quem confirma prazo vê.
@@ -225,6 +227,7 @@ TITULOS = {
     "tarefas": ("Tarefas", "O que fazer além dos prazos do tribunal."),
     "documentos": ("Documentos", "Contratos, procurações, petições e afins."),
     "reunioes": ("Sala de Reunião", "Grave a reunião pelo microfone e guarde o áudio."),
+    "captacao": ("Captação", "O funil de clientes em potencial, antes de virarem processo."),
     "financeiro": ("Financeiro", "Honorários contratados e parcelas a receber."),
     "relatorios": ("Relatórios", "Como o escritório está indo, não só a fila do dia."),
     "ajustes": ("Ajustes", "Fonte das publicações, regras e feriados."),
@@ -242,7 +245,7 @@ st.markdown(
 
 # O painel de situação acompanha as telas de trabalho. Ajustes não tem prazo
 # para mostrar; Financeiro e Relatórios já têm seus próprios números no topo.
-if TELA not in ("ajustes", "financeiro", "relatorios"):
+if TELA not in ("ajustes", "financeiro", "relatorios", "captacao"):
     st.markdown(
         f'<div class="situacao">'
         f'<div class="tile-azul"><span class="rot"><span class="ms">schedule</span>'
@@ -274,6 +277,8 @@ elif TELA == "documentos":
     v_documentos.render(CTX)
 elif TELA == "reunioes":
     v_reunioes.render(CTX)
+elif TELA == "captacao":
+    v_captacao.render(CTX)
 elif TELA == "financeiro":
     v_financeiro.render(CTX)
 elif TELA == "relatorios":
