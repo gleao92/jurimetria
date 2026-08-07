@@ -206,6 +206,30 @@ section[data-testid="stSidebar"] *{ color:var(--barra-tx); }
 .topo .data{ font-size:.82rem; color:var(--muted); text-align:right; line-height:1.5; }
 .topo .data b{ color:#FCD34D; font-weight:600; }
 
+/* ─────────── página pública de captação ─────────── */
+.publica-hero{
+  text-align:center; padding:2.6rem 1rem 2.2rem; margin-bottom:1rem;
+  border-bottom:1px solid var(--line);
+}
+.publica-marca{
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  font-family:'Playfair Display',Georgia,serif; font-size:1.1rem; font-weight:700;
+  color:var(--accent); text-transform:uppercase; letter-spacing:.06em;
+  margin-bottom:1rem;
+}
+.publica-marca .ms{ font-size:1.2rem; opacity:1; margin:0; }
+.publica-hero h1{
+  font-family:'Playfair Display',Georgia,serif; font-size:2.6rem; font-weight:700;
+  color:var(--ink); letter-spacing:-.02em; margin:0 0 .7rem;
+}
+.publica-hero p{
+  font-size:1.05rem; color:var(--barra-tx); max-width:640px; margin:0 auto;
+}
+.publica-rodape{
+  text-align:center; font-size:.76rem; color:var(--muted); margin-top:2.5rem;
+  padding-top:1.2rem; border-top:1px solid var(--line);
+}
+
 /* ─────────── painel de situação ─────────── */
 .situacao{ display:grid; grid-template-columns:repeat(4,1fr); gap:.85rem;
   margin-bottom:1.9rem; }

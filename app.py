@@ -19,7 +19,7 @@ _NECESSARIOS = [
     "tarefas", "financeiro", "documentos", "relatorios", "captacao",
     "vista_hoje", "vista_agenda", "vista_prazos", "vista_processos",
     "vista_ajustes", "vista_tarefas", "vista_financeiro", "vista_documentos",
-    "vista_relatorios", "vista_reunioes", "vista_captacao",
+    "vista_relatorios", "vista_reunioes", "vista_captacao", "pagina_publica",
 ]
 _faltando = []
 for _m in _NECESSARIOS:
@@ -52,6 +52,7 @@ import vista_documentos as v_documentos
 import vista_relatorios as v_relatorios
 import vista_reunioes as v_reunioes
 import vista_captacao as v_captacao
+import pagina_publica
 
 st.set_page_config(page_title=NOME_SISTEMA, page_icon="⚖️", layout="wide",
                    initial_sidebar_state="expanded")
@@ -60,6 +61,15 @@ st.markdown(estilo.CSS + estilo.CSS_AGENDA, unsafe_allow_html=True)
 HOJE = date.today()
 db.init(); auth.init()
 FONTE_CONECTADA = captura.fonte_conectada()
+
+
+# ══════════════════ página pública de captação ══════════════════
+# Sem login — é a porta de entrada de quem ainda não é cliente. Fica ANTES
+# de qualquer checagem de sessão, senão quem não tem conta nunca chegaria
+# nela. Ver pagina_publica.py.
+if st.query_params.get("pagina") == "contato":
+    pagina_publica.render()
+    st.stop()
 
 
 # ══════════════════ primeiro acesso ══════════════════
