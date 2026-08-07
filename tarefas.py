@@ -15,6 +15,7 @@ import hashlib
 from datetime import date, datetime
 
 import db
+from cache_wrap import leitura, limpar
 
 PRIORIDADES = {"alta": {"rotulo": "Alta", "peso": 0},
                "normal": {"rotulo": "Normal", "peso": 1},
@@ -50,6 +51,7 @@ def criar(titulo: str, descricao: str = "", responsavel: str = "",
              prioridade if prioridade in PRIORIDADES else "normal",
              "aberta", autor, datetime.now().isoformat(timespec="seconds")))
     db.registrar("tarefa_criada", tid, f"{titulo} · resp. {responsavel or '—'}")
+    limpar()
     return tid
 
 
@@ -64,6 +66,7 @@ def atualizar(tid: str, campos: dict, autor: str) -> None:
                     f"{','.join(f'{k}=?' for k in campos)} WHERE id=?",
                     (*campos.values(), tid))
     db.registrar("tarefa_editada", tid, f"por {autor}: {list(campos)}")
+    limpar()
 
 
 def concluir(tid: str, autor: str) -> None:
@@ -71,6 +74,7 @@ def concluir(tid: str, autor: str) -> None:
         con.execute("UPDATE tarefas SET status='concluida', concluido_em=? WHERE id=?",
                     (datetime.now().isoformat(timespec="seconds"), tid))
     db.registrar("tarefa_concluida", tid, f"por {autor}")
+    limpar()
 
 
 def reabrir(tid: str, autor: str) -> None:
@@ -78,14 +82,17 @@ def reabrir(tid: str, autor: str) -> None:
         con.execute("UPDATE tarefas SET status='aberta', concluido_em=NULL WHERE id=?",
                     (tid,))
     db.registrar("tarefa_reaberta", tid, f"por {autor}")
+    limpar()
 
 
 def excluir(tid: str, autor: str) -> None:
     with db.conectar() as con:
         con.execute("DELETE FROM tarefas WHERE id=?", (tid,))
     db.registrar("tarefa_excluida", tid, f"por {autor}")
+    limpar()
 
 
+@leitura()
 def listar(status: str = None, responsavel: str = None) -> list[dict]:
     sql = "SELECT * FROM tarefas"
     cond, args = [], []

@@ -21,6 +21,7 @@ import hashlib
 from datetime import datetime
 
 import db
+from cache_wrap import leitura, limpar
 
 LIMITE_BYTES = 20 * 1024 * 1024  # 20 MB
 
@@ -61,6 +62,7 @@ def salvar(nome_arquivo: str, conteudo: bytes, categoria: str = "outro",
     db.registrar("documento_enviado", did,
                  f"{nome_arquivo} · {cliente or processo or '—'} · "
                  f"{len(conteudo)/1024:.0f} KB")
+    limpar()
     return did
 
 
@@ -68,8 +70,10 @@ def excluir(did: str, autor: str) -> None:
     with db.conectar() as con:
         con.execute("DELETE FROM documentos WHERE id=?", (did,))
     db.registrar("documento_excluido", did, f"por {autor}")
+    limpar()
 
 
+@leitura()
 def listar(cliente: str = None, processo: str = None,
           categoria: str = None) -> list[dict]:
     """Lista SEM o conteúdo — só metadados, para não carregar todos os
@@ -92,6 +96,7 @@ def listar(cliente: str = None, processo: str = None,
     return r
 
 
+@leitura(ttl=60)
 def clientes_conhecidos() -> list[str]:
     """Nomes de cliente já vistos — na carteira (processos) ou em documentos
     já enviados. Alimenta o filtro/seletor, pra não depender do usuário
@@ -107,6 +112,7 @@ def clientes_conhecidos() -> list[str]:
     return sorted(set(a) | set(b))
 
 
+@leitura(ttl=60)
 def processos_conhecidos() -> list[str]:
     con = db.conectar()
     a = [r[0] if not hasattr(r, "keys") else r["numero"] for r in

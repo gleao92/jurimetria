@@ -21,6 +21,7 @@ import hashlib
 from datetime import date, datetime
 
 import db
+from cache_wrap import leitura, limpar
 
 TIPOS = {"fixo": "Valor fixo", "exito": "Êxito", "mensal": "Mensalidade"}
 STATUS_PARCELA = {"pendente": "Pendente", "pago": "Pago", "atrasado": "Atrasado"}
@@ -66,6 +67,7 @@ def criar_honorario(cliente: str, processo: str, tipo: str, valor_total: float,
     db.registrar("honorario_criado", hid,
                  f"{cliente} · {processo} · R$ {valor_total:.2f} · "
                  f"{len(parcelas or [])} parcela(s)")
+    limpar()
     return hid
 
 
@@ -73,6 +75,7 @@ def cancelar_honorario(hid: str, autor: str) -> None:
     with db.conectar() as con:
         con.execute("UPDATE honorarios SET cancelado=1 WHERE id=?", (hid,))
     db.registrar("honorario_cancelado", hid, f"por {autor}")
+    limpar()
 
 
 def marcar_pago(pid: str, autor: str) -> None:
@@ -80,6 +83,7 @@ def marcar_pago(pid: str, autor: str) -> None:
         con.execute("UPDATE parcelas SET status='pago', pago_em=? WHERE id=?",
                     (datetime.now().isoformat(timespec="seconds"), pid))
     db.registrar("parcela_paga", pid, f"por {autor}")
+    limpar()
 
 
 def desfazer_pagamento(pid: str, autor: str) -> None:
@@ -87,6 +91,7 @@ def desfazer_pagamento(pid: str, autor: str) -> None:
         con.execute("UPDATE parcelas SET status='pendente', pago_em=NULL WHERE id=?",
                     (pid,))
     db.registrar("parcela_reaberta", pid, f"por {autor}")
+    limpar()
 
 
 def _atualizar_atrasadas(hoje: date) -> None:
@@ -99,6 +104,7 @@ def _atualizar_atrasadas(hoje: date) -> None:
                     (str(hoje),))
 
 
+@leitura()
 def listar_honorarios(incluir_cancelados: bool = False) -> list[dict]:
     con = db.conectar()
     sql = "SELECT * FROM honorarios"
@@ -110,6 +116,7 @@ def listar_honorarios(incluir_cancelados: bool = False) -> list[dict]:
     return r
 
 
+@leitura()
 def listar_parcelas(honorario_id: str = None, status: str = None,
                     hoje: date = None) -> list[dict]:
     _atualizar_atrasadas(hoje or date.today())
@@ -128,6 +135,7 @@ def listar_parcelas(honorario_id: str = None, status: str = None,
     return r
 
 
+@leitura()
 def resumo(hoje: date = None) -> dict:
     """Números que respondem 'como está o caixa': contratado, recebido,
     pendente e atrasado — o mínimo que um advogado olha antes de decidir se

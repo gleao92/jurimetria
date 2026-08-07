@@ -21,6 +21,7 @@ from datetime import date
 import db
 import financeiro
 import tarefas as tarefas_mod
+from cache_wrap import leitura
 
 
 def processos_por_area() -> dict:
@@ -78,6 +79,7 @@ def financeiro_resumo(hoje: date = None) -> dict:
     return financeiro.resumo(hoje)
 
 
+@leitura(ttl=30)
 def painel_geral(hoje: date = None) -> dict:
     """Um dicionário com tudo — o que a vista de relatórios consome de uma
     vez, para não espalhar consultas pela tela."""

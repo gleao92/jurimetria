@@ -59,8 +59,25 @@ st.set_page_config(page_title=NOME_SISTEMA, page_icon="⚖️", layout="wide",
 st.markdown(estilo.CSS + estilo.CSS_AGENDA, unsafe_allow_html=True)
 
 HOJE = date.today()
-db.init(); auth.init()
-FONTE_CONECTADA = captura.fonte_conectada()
+
+# ── Inicialização única por processo ──────────────────────────────────
+# db.init() e auth.init() criam tabelas com IF NOT EXISTS — idempotentes,
+# mas ainda assim ida-e-volta com o banco a cada rerun (e o Streamlit
+# rerroda o script inteiro a cada clique de menu). @cache_resource garante
+# que rode uma vez só por processo Python. `captura.fonte_conectada()`
+# checa arquivo/rede — cache curto pra refletir mudança de configuração
+# sem exigir restart.
+@st.cache_resource
+def _inicializar():
+    db.init(); auth.init()
+    return True
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _fonte_conectada_cache():
+    return captura.fonte_conectada()
+
+_inicializar()
+FONTE_CONECTADA = _fonte_conectada_cache()
 
 
 # ══════════════════ página pública de captação ══════════════════

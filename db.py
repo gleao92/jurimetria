@@ -19,6 +19,8 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 
+from cache_wrap import leitura, limpar
+
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 USA_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 # DB_DIR permite apontar o SQLite para um volume persistente (Docker/VPS).
@@ -163,6 +165,8 @@ def salvar_processos(processos):
                 VALUES (?,?,?,?,?,?)""",
                 (p["numero"], p.get("cliente"), p.get("area"), p.get("sistema"),
                  p.get("tribunal"), p.get("assunto")))
+    if processos:
+        limpar()
 
 
 def salvar_publicacao(pub) -> tuple[str, bool]:
@@ -180,6 +184,8 @@ def salvar_publicacao(pub) -> tuple[str, bool]:
              ",".join(pub.get("fontes") or [pub.get("sistema") or "?"])))
         con.commit()
     con.close()
+    if not existe:
+        limpar()
     return pid, not existe
 
 
@@ -214,9 +220,11 @@ def criar_prazo(publicacao_id, processo, area, ato, prazo_dias,
          trecho))
     con.commit(); con.close()
     registrar("prazo_criado", pid, f"{processo} | {ato} | fatal {data_fatal}")
+    limpar()
     return True
 
 
+@leitura()
 def listar_prazos(status=None):
     con = conectar()
     sql = """SELECT p.*, pr.cliente, pr.tribunal, pr.assunto, pu.teor, pu.sistema,
@@ -248,6 +256,7 @@ def confirmar(prazo_id, por, prazo_dias=None, data_fatal=None,
             f"UPDATE prazos SET {','.join(f'{k}=?' for k in campos)} WHERE id=?",
             (*campos.values(), prazo_id))
     registrar("prazo_confirmado", prazo_id, f"por {por} | fatal {data_fatal}")
+    limpar()
 
 
 def marcar_cumprido(prazo_id, por, obs=None):
@@ -256,6 +265,7 @@ def marcar_cumprido(prazo_id, por, obs=None):
                        observacao=COALESCE(?,observacao) WHERE id=?""",
                     (datetime.now().isoformat(timespec="seconds"), obs, prazo_id))
     registrar("prazo_cumprido", prazo_id, f"por {por}")
+    limpar()
 
 
 def arquivar(prazo_id, por, motivo=""):
@@ -263,8 +273,10 @@ def arquivar(prazo_id, por, motivo=""):
         con.execute("UPDATE prazos SET status='arquivado', observacao=? WHERE id=?",
                     (motivo, prazo_id))
     registrar("prazo_arquivado", prazo_id, f"por {por} | {motivo}")
+    limpar()
 
 
+@leitura(ttl=30)
 def ultimos_logs(n=50):
     con = conectar()
     r = [dict(x) for x in con.execute(
@@ -272,6 +284,7 @@ def ultimos_logs(n=50):
     con.close(); return r
 
 
+@leitura(ttl=60)
 def ultima_captura():
     """Quando a captura local rodou pela última vez (datetime ou None).
 

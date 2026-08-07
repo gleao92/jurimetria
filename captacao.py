@@ -20,6 +20,7 @@ import hashlib
 from datetime import datetime
 
 import db
+from cache_wrap import leitura, limpar
 
 ESTAGIOS = ["novo", "contato_feito", "reuniao_marcada", "proposta_enviada",
            "ganho", "perdido"]
@@ -63,6 +64,7 @@ def criar(nome: str, contato: str = "", origem: str = "outro",
              float(valor_estimado or 0), "novo", responsavel.strip(),
              observacao.strip(), autor, agora, agora))
     db.registrar("lead_criado", lid, f"{nome} · {ORIGENS.get(origem, origem)}")
+    limpar()
     return lid
 
 
@@ -78,6 +80,7 @@ def mover_estagio(lid: str, novo_estagio: str, autor: str,
     db.registrar("lead_movido", lid,
                  f"para {ROTULOS_ESTAGIO.get(novo_estagio, novo_estagio)} por {autor}"
                  + (f" · motivo: {motivo_perda}" if motivo_perda else ""))
+    limpar()
 
 
 def atualizar(lid: str, campos: dict, autor: str) -> None:
@@ -91,14 +94,17 @@ def atualizar(lid: str, campos: dict, autor: str) -> None:
         con.execute(f"UPDATE leads SET {','.join(f'{k}=?' for k in campos)} "
                     f"WHERE id=?", (*campos.values(), lid))
     db.registrar("lead_editado", lid, f"por {autor}: {list(campos)}")
+    limpar()
 
 
 def excluir(lid: str, autor: str) -> None:
     with db.conectar() as con:
         con.execute("DELETE FROM leads WHERE id=?", (lid,))
     db.registrar("lead_excluido", lid, f"por {autor}")
+    limpar()
 
 
+@leitura()
 def listar(estagio: str = None) -> list[dict]:
     con = db.conectar()
     sql = "SELECT * FROM leads"
