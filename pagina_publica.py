@@ -24,6 +24,8 @@ enviado com sucesso conta como conversão pro Google Ads (_tag_conversao) —
 mais chance de virar cliente. Em branco, nada disso carrega.
 """
 
+import base64
+from pathlib import Path
 from urllib.parse import quote
 
 import streamlit as st
@@ -90,7 +92,7 @@ _CSS_FIRMA = """
 .stApp{ background:#EDE6D8 !important; }
 .publica-hero{ border-bottom-color:rgba(92,31,48,.18) !important; }
 .publica-logo{
-  width:64px; height:64px; margin:0 auto 1rem;
+  display:block; max-width:220px; width:100%; height:auto; margin:0 auto 1rem;
 }
 .publica-marca{ color:#9C7A46 !important; }
 .publica-marca .nome{
@@ -142,7 +144,13 @@ def _link_whatsapp(mensagem: str = "") -> str:
     return f"https://wa.me/{numero}?text={texto}"
 
 
-_LOGO_SVG = """
+# Logo real do escritório (arquivo enviado pela Dra. Mychelle). Carregada uma
+# vez, em base64, para entrar no mesmo bloco de HTML do herói — sem isso
+# precisaria de um servidor de estáticos à parte, que o Streamlit não dá de
+# graça. Se o arquivo não estiver na pasta `assets/` (por exemplo, alguém
+# copiou só os .py), cai para o monograma em SVG como aproximação.
+_LOGO_ARQUIVO = Path(__file__).parent / "assets" / "logo_mychelle_xavier.png"
+_LOGO_SVG_RESERVA = """
 <svg class="publica-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="50" cy="50" r="46" stroke="#B8935A" stroke-width="1.5"/>
   <text x="50" y="46" text-anchor="middle" font-family="Playfair Display, Georgia, serif"
@@ -153,6 +161,12 @@ _LOGO_SVG = """
   <path d="M70 60 L76 70 A7 7 0 0 1 64 70 Z" stroke="#B8935A" stroke-width="1.1" fill="none"/>
 </svg>
 """
+if _LOGO_ARQUIVO.exists():
+    _LOGO_B64 = base64.b64encode(_LOGO_ARQUIVO.read_bytes()).decode("ascii")
+    _LOGO_SVG = (f'<img class="publica-logo" src="data:image/png;base64,{_LOGO_B64}" '
+                f'alt="Mychelle Xavier — Advocacia e Consultoria Jurídica">')
+else:
+    _LOGO_SVG = _LOGO_SVG_RESERVA
 
 
 def render():
