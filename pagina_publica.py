@@ -11,21 +11,76 @@ O QUE ELA FAZ E O QUE ELA NÃO FAZ
 Não anuncia, não compra tráfego, não aparece sozinha no Google — isso é
 marketing, de fora do sistema. O que ela faz: quando alguém chega até aqui
 (por um link que você divulgou, um QR code, um anúncio que você pagou), dá
-duas formas de contato imediato — WhatsApp direto ou um formulário curto —
-e QUALQUER uma das duas cai automaticamente na aba Captação, sem digitar de
-novo.
+duas formas de contato imediato — WhatsApp direto ou um formulário curto.
+SÓ o formulário cai automaticamente na aba Captação hoje; quem clica direto
+pro WhatsApp sai da página sem passar pelo sistema (decisão deliberada por
+enquanto — ver conversa que motivou isso).
+
+MEDIÇÃO DE TRÁFEGO PAGO (opcional)
+Se GOOGLE_ADS_CONVERSION_ID / GA4_MEASUREMENT_ID estiverem preenchidos em
+config.py, toda visita é registrada (_tag_visualizacao) e todo formulário
+enviado com sucesso conta como conversão pro Google Ads (_tag_conversao) —
+é o sinal que faz a plataforma aprender a mostrar o anúncio pra quem tem
+mais chance de virar cliente. Em branco, nada disso carrega.
 """
 
 from urllib.parse import quote
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 import captacao
 from config import (NOME_ESCRITORIO, SUBTITULO_ESCRITORIO, WHATSAPP_NUMERO,
                     AREAS_ATUACAO, CIDADE_REGIAO, HERO_TITULO, HERO_SUBTITULO,
-                    MENSAGEM_WHATSAPP_PADRAO)
+                    MENSAGEM_WHATSAPP_PADRAO, GOOGLE_ADS_CONVERSION_ID,
+                    GOOGLE_ADS_CONVERSION_LABEL, GA4_MEASUREMENT_ID)
 
 _NUMERO_EXEMPLO = "5562900000000"
+
+
+# ── medição de tráfego pago ──────────────────────────────────────────
+# Cada chamada a components.html() roda num <iframe> ISOLADO — não dá pra
+# carregar o gtag.js numa chamada e disparar evento noutra, o segundo
+# iframe não veria a função. Por isso cada função abaixo é autossuficiente:
+# carrega o gtag.js e já dispara o que precisa, tudo no mesmo snippet.
+# Nada roda enquanto os campos em config.py estiverem em branco.
+def _tag_visualizacao():
+    """Registra a visita — alimenta o público de remarketing do Google Ads
+    e o relatório de origem de tráfego do GA4. Sem isso, o Google não sabe
+    quem chegou na página nem de onde veio o clique."""
+    ids = [i for i in (GOOGLE_ADS_CONVERSION_ID, GA4_MEASUREMENT_ID) if i]
+    if not ids:
+        return
+    principal = ids[0]
+    configs = "\n".join(f"gtag('config', '{i}');" for i in ids)
+    components.html(f"""
+<script async src="https://www.googletagmanager.com/gtag/js?id={principal}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{ dataLayer.push(arguments); }}
+  gtag('js', new Date());
+  {configs}
+</script>
+""", height=0)
+
+
+def _tag_conversao():
+    """Avisa o Google que ESTE clique virou contato de verdade — é o sinal
+    que ensina o algoritmo do Ads a mostrar o anúncio pra quem tem mais
+    chance de virar cliente, em vez de só contar clique."""
+    if not (GOOGLE_ADS_CONVERSION_ID and GOOGLE_ADS_CONVERSION_LABEL):
+        return
+    destino = f"{GOOGLE_ADS_CONVERSION_ID}/{GOOGLE_ADS_CONVERSION_LABEL}"
+    components.html(f"""
+<script async src="https://www.googletagmanager.com/gtag/js?id={GOOGLE_ADS_CONVERSION_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{ dataLayer.push(arguments); }}
+  gtag('js', new Date());
+  gtag('config', '{GOOGLE_ADS_CONVERSION_ID}');
+  gtag('event', 'conversion', {{'send_to': '{destino}'}});
+</script>
+""", height=0)
 
 # Paleta da marca do escritório (vinho + dourado sobre creme) — deliberadamente
 # DIFERENTE do tema escuro/âmbar do painel interno: aqui é a identidade visual
@@ -101,6 +156,7 @@ _LOGO_SVG = """
 
 
 def render():
+    _tag_visualizacao()
     st.markdown(_CSS_FIRMA, unsafe_allow_html=True)
     tags = "".join(f'<span class="etq">{a}</span>' for a in AREAS_ATUACAO)
     st.markdown(f"""
@@ -150,6 +206,7 @@ def render():
             else:
                 captacao.criar(nome, telefone, "site", area, 0.0,
                                "", mensagem, autor="página pública")
+                _tag_conversao()
                 st.success("Recebemos seu contato! Vamos retornar em breve. "
                           "Se quiser adiantar, chame no WhatsApp ao lado.")
 

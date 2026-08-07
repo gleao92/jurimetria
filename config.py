@@ -33,3 +33,17 @@ AREAS_ATUACAO = [
 MENSAGEM_WHATSAPP_PADRAO = (
     "Olá! Quero saber se tenho direito a um benefício do INSS."
 )
+
+# ── medição de tráfego pago (opcional) ─────────────────────────────────
+# Deixe em branco enquanto não tiver conta no Google Ads / GA4 — nada é
+# carregado até estes campos serem preenchidos, então não atrasa nem
+# arrisca a página enquanto o anúncio ainda não existe.
+#
+# GOOGLE_ADS_CONVERSION_ID: formato "AW-XXXXXXXXX" (Ferramentas > Conversões
+#   > sua conversão > Configuração da tag, no Google Ads).
+# GOOGLE_ADS_CONVERSION_LABEL: o trecho depois da barra em "AW-XXX/AbC-D_e".
+# GA4_MEASUREMENT_ID: formato "G-XXXXXXXXXX" (Admin > Fluxos de dados, no
+#   Google Analytics) — mostra de onde vem o tráfego mesmo sem anúncio pago.
+GOOGLE_ADS_CONVERSION_ID = ""
+GOOGLE_ADS_CONVERSION_LABEL = ""
+GA4_MEASUREMENT_ID = ""
